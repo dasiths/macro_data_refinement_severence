@@ -162,7 +162,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      overflow: hidden;
+      overflow: visible; /* Changed from 'hidden' to 'visible' to show the lids */
       box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
     }
     
@@ -252,6 +252,48 @@
       pointer-events: none;
     }
     
+    /* Bin lid styling and animation */
+    .bin-lid-left, .bin-lid-right {
+      position: absolute;
+      top: -8px; /* Moved up to make more visible - was -18px */
+      width: 50%;
+      height: 12px; /* Slightly shorter height to look better */
+      background: linear-gradient(to bottom, #333 60%, #0f0 100%);
+      border: 2px solid #0f0;
+      border-bottom: none;
+      z-index: 20;
+      transition: transform 0.25s cubic-bezier(.4,2,.6,1), box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(0,255,0,0.3); /* Increased glow */
+    }
+    .bin-lid-left {
+      left: 0;
+      border-right: none;
+      border-top-left-radius: 10px;
+      transform-origin: left center; /* Changed to pivot from left edge */
+    }
+    .bin-lid-right {
+      right: 0;
+      border-left: none;
+      border-top-right-radius: 10px;
+      transform-origin: right center; /* Changed to pivot from right edge */
+    }
+    .bin-lid-left.open {
+      transform: rotateZ(-60deg) translateY(-2px); /* Opening outward from left edge */
+    }
+    .bin-lid-right.open {
+      transform: rotateZ(60deg) translateY(-2px); /* Opening outward from right edge */
+    }
+    
+    /* Make lids more noticeable with a subtle animation */
+    @keyframes lidPulse {
+      0% { box-shadow: 0 0 5px rgba(0,255,0,0.3); }
+      100% { box-shadow: 0 0 8px rgba(0,255,0,0.5); }
+    }
+    
+    .bin-lid-left, .bin-lid-right {
+      animation: lidPulse 1.5s infinite alternate;
+    }
+
     /* Falling number animation */
     @keyframes fallAnimation {
       0% {
@@ -655,21 +697,36 @@
             <div class="bin-counter">0%</div>
             <div class="bin-fill"></div>
             <div class="fill-switch" title="Fill instantly">▲</div>
+            <div class="bin-lid-left"></div>
+            <div class="bin-lid-right"></div>
           </div>
           <div class="bin" id="bin2" data-bin-name="Beta">
             <div class="bin-counter">0%</div>
             <div class="bin-fill"></div>
             <div class="fill-switch" title="Fill instantly">▲</div>
+            <div class="bin-lid-left"></div>
+            <div class="bin-lid-right"></div>
           </div>
           <div class="bin" id="bin3" data-bin-name="Gamma">
             <div class="bin-counter">0%</div>
             <div class="bin-fill"></div>
             <div class="fill-switch" title="Fill instantly">▲</div>
+            <div class="bin-lid-left"></div>
+            <div class="bin-lid-right"></div>
           </div>
           <div class="bin" id="bin4" data-bin-name="Delta">
             <div class="bin-counter">0%</div>
             <div class="bin-fill"></div>
             <div class="fill-switch" title="Fill instantly">▲</div>
+            <div class="bin-lid-left"></div>
+            <div class="bin-lid-right"></div>
+          </div>
+          <div class="bin" id="bin5" data-bin-name="Epsilon">
+            <div class="bin-counter">0%</div>
+            <div class="bin-fill"></div>
+            <div class="fill-switch" title="Fill instantly">▲</div>
+            <div class="bin-lid-left"></div>
+            <div class="bin-lid-right"></div>
           </div>
         </div>
       </div>
@@ -768,10 +825,13 @@
     let userScore = 0;
     
     // Initialize bin counters
-    const binCounts = [0, 0, 0, 0];
+    const binCounts = [0, 0, 0, 0, 0];
 
     // Power-up tracking
     let lastPowerUpTime = 0;
+
+    // Track incoming numbers for each bin to control double-door animation
+    const binIncomingCounts = [0, 0, 0, 0, 0];
     
     // Format time function for the timer
     function formatTime(time) {
@@ -1106,6 +1166,22 @@
       }, highlightDuration);
     }
     
+    // Animate the bin double doors open/close
+    function openBinDoors(bin, binIndex) {
+      const lidLeft = bin.querySelector('.bin-lid-left');
+      const lidRight = bin.querySelector('.bin-lid-right');
+      if (!lidLeft || !lidRight) return;
+      lidLeft.classList.add('open');
+      lidRight.classList.add('open');
+    }
+    function closeBinDoors(bin, binIndex) {
+      const lidLeft = bin.querySelector('.bin-lid-left');
+      const lidRight = bin.querySelector('.bin-lid-right');
+      if (!lidLeft || !lidRight) return;
+      lidLeft.classList.remove('open');
+      lidRight.classList.remove('open');
+    }
+
     // Create a flying number animation from a cell to a bin
     function createFlyingNumber(sourceCell, targetBin, isBonus = false) {
       const cellRect = sourceCell.getBoundingClientRect();
@@ -1139,6 +1215,13 @@
       flyingNumber.style.setProperty('--end-y', `${endY}px`);
       flyingNumber.style.setProperty('--random-rotate', `${(Math.random() * 360) - 180}deg`);
       
+      // Open the bin doors if this is the first incoming number
+      const binIndex = bins.indexOf(targetBin);
+      if (binIncomingCounts[binIndex] === 0) {
+        openBinDoors(targetBin, binIndex);
+      }
+      binIncomingCounts[binIndex]++;
+      
       // Apply animation
       flyingNumber.style.animation = 'fallAnimation 0.6s ease-in forwards';
       
@@ -1146,6 +1229,11 @@
       setTimeout(() => {
         if (flyingNumber.parentNode) {
           document.body.removeChild(flyingNumber);
+        }
+        // Decrement incoming count and close doors if this was the last
+        binIncomingCounts[binIndex]--;
+        if (binIncomingCounts[binIndex] === 0) {
+          closeBinDoors(targetBin, binIndex);
         }
       }, 600);
       
@@ -1542,7 +1630,13 @@
         setTimeout(() => {
           bin.classList.remove('celebration');
         }, 800);
-        
+
+        // Open the bin doors for fill switch
+        openBinDoors(bins[index], index);
+        setTimeout(() => {
+          closeBinDoors(bins[index], index);
+        }, 700);
+
         // Update bin count to full capacity
         binCounts[binIndex] = MAX_BIN_CAPACITY;
         
