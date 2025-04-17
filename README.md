@@ -21,7 +21,7 @@ This game captures the essence of that peculiar work while transforming it into 
 ## How to Play
 
 - Download and run the `game.html` or
-- Try this [live demo](https://peach-romy-23.tiiny.site).
+- Try this [live demo](https://macro-data.netlify.app/game.html).
 
 1. Click on numbers to send them to randomly selected bins
 2. Numbers near your cursor are collected automatically through proximity detection
