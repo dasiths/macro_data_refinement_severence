@@ -153,19 +153,19 @@
     
     .grid {
       display: grid;
-      grid-template-columns: repeat(20, 1fr);
+      grid-template-columns: repeat(15, 1fr); /* Changed from 20 to 15 columns */
       gap: 16px;
       padding-top: 40px;
-      margin-bottom: 30px; /* Add space for bins */
+      margin-bottom: 80px; /* Increased to add more space for bin lids */
     }
     
     .number {
-      width: 32px;
-      height: 32px;
+      width: 42px; /* Increased from 32px to make numbers bigger */
+      height: 42px; /* Increased from 32px to make numbers bigger */
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 24px;
+      font-size: 30px; /* Increased from 24px to make numbers bigger */
       cursor: pointer;
       transition: text-shadow 0.2s ease-out;
       position: relative;
@@ -189,6 +189,7 @@
       display: flex;
       justify-content: space-around;
       margin-top: 20px;
+      margin-bottom: 40px; /* Increased margin to provide more space for labels */
       padding: 20px;
       position: relative;
       overflow: visible; /* Ensure bin container allows overflow for lids */
@@ -200,84 +201,68 @@
       height: 80px;
       background-color: rgba(0, 80, 0, 0.3);
       border: 3px solid rgba(0, 255, 0, 0.3);
-      border-radius: 10px;
+      border-top: none; /* Remove top border */
+      border-radius: 0 0 10px 10px; /* Only round the bottom corners */
       position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
       overflow: hidden; /* Keep hidden for the bin itself */
       box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
+      transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
     
-    .bin::before {
-      content: attr(data-bin-name);
-      font-size: 16px;
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      color: rgba(0, 255, 0, 0.7);
-      font-weight: bold;
-      text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
-      z-index: 1;
-    }
-    
-    /* Lid container to hold lids outside bins */
-    .lid-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 0;
-      overflow: visible;
-      pointer-events: none; /* Allow clicks to pass through to elements below */
-      z-index: 25;
-    }
-    
-    /* Bin counter */
+    /* Bin counter styles */
     .bin-counter {
-      position: absolute;
-      bottom: 10px;
-      font-size: 14px;
-      color: rgba(0, 255, 0, 0.7);
+      position: relative;
+      z-index: 5;
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #00ff88;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
     }
     
-    /* Fill level indicator for bins */
+    /* Bin fill styles */
     .bin-fill {
       position: absolute;
       bottom: 0;
       left: 0;
-      width: 0%;
-      height: 4px;
-      background: linear-gradient(to right, #00ff00, #00ffaa);
-      transition: width 0.3s ease-out;
-      z-index: 10;
+      width: 100%; /* Changed from 0% to 100% for full width */
+      height: 0%; /* Changed from no height to 0% for bottom-to-top fill */
+      background: linear-gradient(to top, #00ff00, #00aa00);
+      transition: height 0.5s ease-out; /* Changed from width to height transition */
+      z-index: 1;
     }
     
-    /* Full bin styling - Enhanced color transition */
     .bin.full {
-      border-color: rgba(255, 100, 100, 0.7);
-      box-shadow: inset 0 0 15px rgba(255, 100, 100, 0.4), 0 0 20px rgba(255, 100, 100, 0.3);
-      background-color: rgba(60, 10, 10, 0.4);
-      transition: all 0.5s ease-out;
+      background-color: rgba(80, 0, 0, 0.3);
+      border-color: rgba(255, 0, 0, 0.3);
+      box-shadow: inset 0 0 10px rgba(255, 0, 0, 0.1);
     }
     
     .bin.full .bin-counter {
-      color: rgba(255, 180, 180, 0.9);
-      font-weight: bold;
-      text-shadow: 0 0 8px rgba(255, 100, 100, 0.6);
+      color: #ff6060;
+      text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
     }
     
     .bin.full .bin-fill {
-      background: linear-gradient(to right, #ff6060, #ff9080);
-      height: 6px;
-      box-shadow: 0 0 10px rgba(255, 100, 100, 0.6);
+      background: linear-gradient(to top, #ff3030, #aa0000);
+    }
+    
+    /* Bin wrapper to contain bin and its switch */
+    .bin-wrapper {
+      position: relative;
+      display: inline-block;
+      margin: 0 10px; /* Add spacing between bin wrappers */
     }
     
     /* Fill switch styling */
     .fill-switch {
       position: absolute;
-      right: 10px;    /* Changed to position at bottom right */
-      bottom: 10px;   /* Changed to position at bottom of bin */
+      right: -35px; /* Position outside and to the right of the bin */
+      top: 50%; /* Center vertically */
+      transform: translateY(-50%);
       width: 30px;
       height: 20px;
       background-color: rgba(0, 80, 0, 0.5);
@@ -299,7 +284,7 @@
     }
     
     .fill-switch:active {
-      transform: scale(0.95); /* Removed translateY(-50%) */
+      transform: translateY(-50%) scale(0.95); /* Keep vertical alignment while scaling */
     }
     
     .fill-switch.disabled {
@@ -322,6 +307,8 @@
       transition: transform 0.25s cubic-bezier(.4,2,.6,1), box-shadow 0.2s, background 0.5s ease-out, border-color 0.5s ease-out;
       box-shadow: 0 2px 8px rgba(0,255,0,0.3);
       pointer-events: none; /* Allow clicks to pass through */
+      bottom: 100%; /* Position to align exactly with the top of the bin */
+      top: auto; /* Override any top value */
     }
     .bin-lid-left {
       border-right: none;
@@ -748,6 +735,21 @@
       margin-bottom: 8px;
       font-size: 16px;
     }
+
+    /* Move bin name label outside to a separate element */
+    .bin-label {
+      position: absolute;
+      bottom: -30px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 14px;
+      color: #00ff88;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+      font-weight: bold;
+      z-index: 10;
+      padding-bottom: 10px; /* Add padding to create more space above timer */
+    }
   </style>
 </head>
 <body>
@@ -767,30 +769,45 @@
           <!-- Lid container to hold all lids -->
           <div class="lid-container" id="lidContainer"></div>
           
-          <div class="bin" id="bin1" data-bin-name="Alpha">
-            <div class="bin-counter">0%</div>
-            <div class="bin-fill"></div>
+          <div class="bin-wrapper">
+            <div class="bin" id="bin1" data-bin-name="Alpha">
+              <div class="bin-counter">0%</div>
+              <div class="bin-fill"></div>
+            </div>
             <div class="fill-switch" title="Fill instantly">▲</div>
+            <div class="bin-label">Alpha</div>
           </div>
-          <div class="bin" id="bin2" data-bin-name="Beta">
-            <div class="bin-counter">0%</div>
-            <div class="bin-fill"></div>
+          <div class="bin-wrapper">
+            <div class="bin" id="bin2" data-bin-name="Beta">
+              <div class="bin-counter">0%</div>
+              <div class="bin-fill"></div>
+            </div>
             <div class="fill-switch" title="Fill instantly">▲</div>
+            <div class="bin-label">Beta</div>
           </div>
-          <div class="bin" id="bin3" data-bin-name="Gamma">
-            <div class="bin-counter">0%</div>
-            <div class="bin-fill"></div>
+          <div class="bin-wrapper">
+            <div class="bin" id="bin3" data-bin-name="Gamma">
+              <div class="bin-counter">0%</div>
+              <div class="bin-fill"></div>
+            </div>
             <div class="fill-switch" title="Fill instantly">▲</div>
+            <div class="bin-label">Gamma</div>
           </div>
-          <div class="bin" id="bin4" data-bin-name="Delta">
-            <div class="bin-counter">0%</div>
-            <div class="bin-fill"></div>
+          <div class="bin-wrapper">
+            <div class="bin" id="bin4" data-bin-name="Delta">
+              <div class="bin-counter">0%</div>
+              <div class="bin-fill"></div>
+            </div>
             <div class="fill-switch" title="Fill instantly">▲</div>
+            <div class="bin-label">Delta</div>
           </div>
-          <div class="bin" id="bin5" data-bin-name="Epsilon">
-            <div class="bin-counter">0%</div>
-            <div class="bin-fill"></div>
+          <div class="bin-wrapper">
+            <div class="bin" id="bin5" data-bin-name="Epsilon">
+              <div class="bin-counter">0%</div>
+              <div class="bin-fill"></div>
+            </div>
             <div class="fill-switch" title="Fill instantly">▲</div>
+            <div class="bin-label">Epsilon</div>
           </div>
         </div>
       </div>
@@ -884,8 +901,8 @@
     const binFills = Array.from(document.querySelectorAll('.bin-fill'));
     const successMessage = document.getElementById('successMessage');
     const timerContainer = document.getElementById('timerContainer');
-    const rows = 15;
-    const cols = 20;
+    const rows = 10;
+    const cols = 15;
     const numbers = [];
     let lastMouseX = 0, lastMouseY = 0;
     let animationFrameId = null;
@@ -1281,27 +1298,38 @@
       // Create lids for each bin
       bins.forEach((bin, index) => {
         const binRect = bin.getBoundingClientRect();
-        const binLeftOffset = binRect.left - binsContainer.getBoundingClientRect().left;
+        const containerRect = binsContainer.getBoundingClientRect();
+        const binLeftOffset = binRect.left - containerRect.left;
         
-        // Create left lid
+        // Create a wrapper div for each bin lid pair that will be positioned relative to the bin
+        const lidWrapper = document.createElement('div');
+        lidWrapper.style.position = 'absolute';
+        lidWrapper.style.left = `${binLeftOffset}px`;
+        // Position 20px above the bin top
+        lidWrapper.style.top = `${binRect.top - containerRect.top - 15}px`;
+        lidWrapper.style.width = `${binRect.width}px`;
+        lidWrapper.style.height = '0';
+        lidWrapper.style.overflow = 'visible';
+        lidWrapper.dataset.binIndex = index;
+        lidContainer.appendChild(lidWrapper);
+        
+        // Create left lid inside the wrapper
         const leftLid = document.createElement('div');
         leftLid.className = 'bin-lid-left';
-        leftLid.style.left = `${binLeftOffset}px`;
-        // Position at the top of the bin instead of above it
-        leftLid.style.top = `${binRect.top - binsContainer.getBoundingClientRect().top}px`;
-        leftLid.style.width = `${binRect.width / 2}px`;
+        leftLid.style.left = '0';
+        leftLid.style.top = '0';
+        leftLid.style.width = '50%';
         leftLid.dataset.binIndex = index;
-        lidContainer.appendChild(leftLid);
+        lidWrapper.appendChild(leftLid);
         
-        // Create right lid
+        // Create right lid inside the wrapper
         const rightLid = document.createElement('div');
         rightLid.className = 'bin-lid-right';
-        rightLid.style.left = `${binLeftOffset + binRect.width / 2}px`;
-        // Position at the top of the bin instead of above it
-        rightLid.style.top = `${binRect.top - binsContainer.getBoundingClientRect().top}px`;
-        rightLid.style.width = `${binRect.width / 2}px`;
+        rightLid.style.left = '50%';
+        rightLid.style.top = '0';
+        rightLid.style.width = '50%';
         rightLid.dataset.binIndex = index;
-        lidContainer.appendChild(rightLid);
+        lidWrapper.appendChild(rightLid);
       });
     }
     
@@ -1517,7 +1545,7 @@
         binCounters[index].textContent = Math.min(100, Math.floor(fillPercentage)) + '%';
         
         // Update the fill bar - never exceed 100% width
-        binFills[index].style.width = Math.min(100, fillPercentage) + '%';
+        binFills[index].style.height = Math.min(100, fillPercentage) + '%';
         
         // Apply or remove 'full' class based on capacity
         if (isFull && !bin.classList.contains('full')) {
