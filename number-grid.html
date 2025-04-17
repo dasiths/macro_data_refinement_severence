@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Macro Data Refinement</title>
+  <style>
+    body {
+      background-color: #000;
+      margin: 0;
+      padding: 20px;
+      font-family: monospace;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    
+    .console {
+      background-color: #0c0c0c;
+      color: lime;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+      width: 80%;
+      max-width: 1200px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .console::before {
+      content: "Macro Data Refinement - Score: 0";
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background-color: #111;
+      padding: 10px 10px;
+      border-bottom: 1px solid #333;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.7);
+    }
+    
+    /* Update console heading with score */
+    .console[data-score]::before {
+      content: "Macro Data Refinement - Score: " attr(data-score);
+    }
+    
+    /* Game content wrapper */
+    .game-content {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+    }
+    
+    /* Rules panel */
+    .rules-panel {
+      width: 250px;
+      margin-right: 20px;
+      background-color: rgba(0, 40, 0, 0.4);
+      border-radius: 5px;
+      padding: 15px;
+      font-size: 14px;
+      align-self: flex-start;
+      box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
+      border: 1px solid rgba(0, 255, 0, 0.2);
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .rules-panel h2 {
+      color: #00ff88;
+      text-align: center;
+      margin-top: 0;
+      border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+      padding-bottom: 8px;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+    }
+    
+    .rules-panel h3 {
+      color: #00ff88;
+      margin-bottom: 5px;
+      margin-top: 15px;
+    }
+    
+    .rules-panel p {
+      margin: 8px 0;
+      line-height: 1.4;
+    }
+    
+    .rules-panel ul {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+    
+    .rules-panel li {
+      margin-bottom: 5px;
+    }
+    
+    /* Main game area */
+    .game-area {
+      flex: 1;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(20, 1fr);
+      gap: 16px;
+      padding-top: 40px;
+      margin-bottom: 30px; /* Add space for bins */
+    }
+    
+    .number {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      cursor: pointer;
+      transition: text-shadow 0.2s ease-out;
+      position: relative;
+      transform-origin: center center;
+      will-change: transform; /* Performance optimization */
+    }
+    
+    .number:hover {
+      color: #00ff00;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.7);
+    }
+    
+    /* Empty cell styling */
+    .empty {
+      background-color: rgba(0, 100, 0, 0.2);
+      border-radius: 2px;
+    }
+    
+    /* Bins container */
+    .bins-container {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+      padding: 20px;
+      position: relative;
+    }
+    
+    /* Individual bin styling */
+    .bin {
+      width: 120px;
+      height: 80px;
+      background-color: rgba(0, 80, 0, 0.3);
+      border: 3px solid rgba(0, 255, 0, 0.3);
+      border-radius: 10px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
+    }
+    
+    .bin::before {
+      content: attr(data-bin-name);
+      font-size: 16px;
+      position: absolute;
+      top: 10px;
+      color: rgba(0, 255, 0, 0.7);
+    }
+    
+    /* Bin counter */
+    .bin-counter {
+      position: absolute;
+      bottom: 10px;
+      font-size: 14px;
+      color: rgba(0, 255, 0, 0.7);
+    }
+    
+    /* Fill level indicator for bins */
+    .bin-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0%;
+      height: 4px;
+      background: linear-gradient(to right, #00ff00, #00ffaa);
+      transition: width 0.3s ease-out;
+      z-index: 10;
+    }
+    
+    /* Full bin styling - Enhanced color transition */
+    .bin.full {
+      border-color: rgba(255, 100, 100, 0.7);
+      box-shadow: inset 0 0 15px rgba(255, 100, 100, 0.4), 0 0 20px rgba(255, 100, 100, 0.3);
+      background-color: rgba(60, 10, 10, 0.4);
+      transition: all 0.5s ease-out;
+    }
+    
+    .bin.full .bin-counter {
+      color: rgba(255, 180, 180, 0.9);
+      font-weight: bold;
+      text-shadow: 0 0 8px rgba(255, 100, 100, 0.6);
+    }
+    
+    .bin.full .bin-fill {
+      background: linear-gradient(to right, #ff6060, #ff9080);
+      height: 6px;
+      box-shadow: 0 0 10px rgba(255, 100, 100, 0.6);
+    }
+    
+    /* Fill switch styling */
+    .fill-switch {
+      position: absolute;
+      right: 5px;  /* Changed from -40px to 5px to position inside the bin */
+      top: 5px;    /* Changed from 50% to 5px for top positioning */
+      transform: none; /* Removed translateY(-50%) */
+      width: 30px;
+      height: 20px;
+      background-color: rgba(0, 80, 0, 0.5);
+      border: 2px solid rgba(0, 255, 0, 0.4);
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      color: rgba(0, 255, 0, 0.8);
+      transition: all 0.2s ease-out;
+      z-index: 5; /* Added z-index to ensure visibility */
+    }
+    
+    .fill-switch:hover {
+      background-color: rgba(0, 120, 0, 0.6);
+      box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+    }
+    
+    .fill-switch:active {
+      transform: scale(0.95); /* Removed translateY(-50%) */
+    }
+    
+    .fill-switch.disabled {
+      background-color: rgba(50, 50, 50, 0.4);
+      border-color: rgba(100, 100, 100, 0.4);
+      color: rgba(150, 150, 150, 0.5);
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    
+    /* Falling number animation */
+    @keyframes fallAnimation {
+      0% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--end-x), var(--end-y)) scale(0.8) rotate(var(--random-rotate));
+        opacity: 0.8;
+      }
+    }
+    
+    /* Number appearing animation */
+    @keyframes appearAnimation {
+      0% {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    
+    /* Flying number */
+    .flying-number {
+      position: fixed;
+      font-size: 24px;
+      color: lime;
+      z-index: 100;
+      pointer-events: none;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.7);
+    }
+    
+    @keyframes popReplace {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.5); opacity: 0.8; }
+      100% { transform: scale(1); }
+    }
+    
+    @keyframes baseJiggle {
+      0% { transform: scale(1) translate(0, 0) rotate(0deg); }
+      25% { transform: scale(1) translate(0.3px, 0.3px) rotate(0.3deg); }
+      50% { transform: scale(1) translate(-0.3px, 0px) rotate(-0.3deg); }
+      75% { transform: scale(1) translate(0px, -0.3px) rotate(0.2deg); }
+      100% { transform: scale(1) translate(-0.3px, 0.3px) rotate(-0.2deg); }
+    }
+    
+    /* Highlight animation for randomly selected numbers */
+    @keyframes highlightJiggle {
+      0% { transform: scale(2.5) translate(0, 0) rotate(0deg); }
+      25% { transform: scale(2.5) translate(2px, 2px) rotate(2deg); }
+      50% { transform: scale(2.5) translate(-2px, 0px) rotate(-2deg); }
+      75% { transform: scale(2.5) translate(0px, -2px) rotate(1deg); }
+      100% { transform: scale(2.5) translate(-2px, 2px) rotate(-1deg); }
+    }
+    
+    /* Proximity animation for numbers near highlighted ones */
+    @keyframes proximityJiggle {
+      0% { transform: scale(1.3) translate(0, 0) rotate(0deg); }
+      25% { transform: scale(1.3) translate(1px, 1px) rotate(1deg); }
+      50% { transform: scale(1.3) translate(-1px, 0px) rotate(-1deg); }
+      75% { transform: scale(1.3) translate(0px, -1px) rotate(0.5deg); }
+      100% { transform: scale(1.3) translate(-1px, 1px) rotate(-0.5deg); }
+    }
+    
+    /* Bin glow effect when receiving a number */
+    @keyframes binGlow {
+      0% { box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1); }
+      50% { box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.5), 0 0 15px rgba(0, 255, 0, 0.5); }
+      100% { box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1); }
+    }
+    
+    .bin-receiving {
+      animation: binGlow 0.6s ease-out;
+    }
+
+    /* Celebration effect animation */
+    @keyframes celebrationEffect {
+      0% { 
+        box-shadow: 0 0 0 0 rgba(0, 255, 128, 0.7);
+        background-color: rgba(0, 255, 128, 0.2);
+      }
+      50% { 
+        box-shadow: 0 0 30px 10px rgba(0, 255, 128, 0.7);
+        background-color: rgba(0, 255, 128, 0.6);
+        color: #000;
+      }
+      100% { 
+        box-shadow: 0 0 0 0 rgba(0, 255, 128, 0);
+        background-color: rgba(0, 255, 128, 0);
+      }
+    }
+    
+    .celebration {
+      animation: celebrationEffect 0.8s ease-out;
+      z-index: 10;
+    }
+    
+    /* Success message banner */
+    .success-message {
+      position: fixed;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 80, 0, 0.9);
+      color: #00ff88;
+      padding: 10px 20px;
+      border-radius: 20px;
+      box-shadow: 0 0 15px rgba(0, 255, 128, 0.6);
+      font-family: monospace;
+      font-size: 18px;
+      z-index: 1000;
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out, transform 0.3s ease-out;
+    }
+    
+    .success-message.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(10px);
+    }
+
+    /* Point popup animation */
+    @keyframes pointPopupAnimation {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.8;
+      }
+      50% {
+        transform: translate(0, -40px) scale(1.5);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(0, -80px) scale(1);
+        opacity: 0;
+      }
+    }
+
+    .point-popup {
+      position: fixed;
+      font-size: 36px;
+      color: #00ff88;
+      font-weight: bold;
+      z-index: 200;
+      pointer-events: none;
+      text-shadow: 0 0 8px rgba(0, 255, 128, 0.7), 0 0 15px rgba(0, 255, 128, 0.5);
+      animation: pointPopupAnimation 1.2s ease-out forwards;
+    }
+
+    /* Timer styling */
+    .timer-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: #111;
+      padding: 8px 10px;
+      border-top: 1px solid #333;
+      text-align: center;
+      font-size: 18px;
+      letter-spacing: 1px;
+      color: #00ff88;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.7);
+    }
+
+    /* Special highlight animation for larger bonus numbers */
+    @keyframes bonusNumberGlow {
+      0% { text-shadow: 0 0 8px rgba(0, 255, 128, 0.7); }
+      50% { text-shadow: 0 0 20px rgba(0, 255, 128, 1), 0 0 30px rgba(0, 255, 128, 0.8); }
+      100% { text-shadow: 0 0 8px rgba(0, 255, 128, 0.7); }
+    }
+
+    /* Bonus number size indicator */
+    .bonus-number {
+      font-size: 32px;
+      animation: bonusNumberGlow 1s infinite alternate;
+    }
+
+    /* Percentage popup animation for bin fills - Simplified animation */
+    @keyframes percentPopupAnimation {
+      0% {
+        transform: translate(0, 0);
+        opacity: 0;
+      }
+      25% {
+        transform: translate(0, -20px);
+        opacity: 1;
+      }
+      75% {
+        transform: translate(0, -20px);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(0, -40px);
+        opacity: 0;
+      }
+    }
+
+    .percent-popup {
+      position: fixed;
+      font-size: 20px;
+      color: #00ffaa;
+      font-weight: bold;
+      z-index: 200;
+      pointer-events: none;
+      text-shadow: 0 0 5px rgba(0, 255, 128, 0.5);
+      animation: percentPopupAnimation 1s ease-out forwards;
+      background-color: rgba(0, 20, 0, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0, 255, 128, 0.2);
+    }
+
+    /* Difficulty selector and level display */
+    .difficulty-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 30px;
+      padding: 10px 20px;
+      background-color: rgba(0, 40, 0, 0.4);
+      border-radius: 5px;
+      box-shadow: 0 0 8px rgba(0, 255, 0, 0.2);
+      font-size: 16px;
+      margin-bottom: 10px;
+      z-index: 5;
+    }
+    
+    #difficultySelector {
+      background-color: rgba(0, 60, 0, 0.7);
+      color: #00ff88;
+      border: 1px solid rgba(0, 255, 128, 0.4);
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      margin: 0 10px;
+      cursor: pointer;
+      outline: none;
+    }
+    
+    #difficultySelector:hover {
+      background-color: rgba(0, 80, 0, 0.8);
+      box-shadow: 0 0 8px rgba(0, 255, 128, 0.4);
+    }
+    
+    #difficultySelector option {
+      background-color: #111;
+      color: #00ff88;
+    }
+    
+    @keyframes pulseLevel {
+      0% { text-shadow: 0 0 5px rgba(0, 255, 128, 0.3); }
+      100% { text-shadow: 0 0 10px rgba(0, 255, 128, 0.8); }
+    }
+
+    /* Power-up animation */
+    @keyframes powerupGlow {
+      0% { background-color: rgba(128, 0, 255, 0.2); box-shadow: 0 0 5px rgba(128, 0, 255, 0.5); }
+      50% { background-color: rgba(128, 0, 255, 0.4); box-shadow: 0 0 15px rgba(128, 0, 255, 0.8); }
+      100% { background-color: rgba(128, 0, 255, 0.2); box-shadow: 0 0 5px rgba(128, 0, 255, 0.5); }
+    }
+    
+    .powerup {
+      color: #cc88ff;
+      background-color: rgba(128, 0, 255, 0.2);
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(128, 0, 255, 0.5);
+      animation: powerupGlow 1.5s infinite alternate, baseJiggle 0.8s infinite alternate;
+    }
+    
+    /* Rules Button */
+    .rules-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: rgba(0, 80, 0, 0.7);
+      color: #00ff88;
+      border: 2px solid rgba(0, 255, 128, 0.4);
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-family: monospace;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+      transition: all 0.2s ease-out;
+    }
+    
+    .rules-button:hover {
+      background-color: rgba(0, 100, 0, 0.8);
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+    }
+    
+    /* Modal Popup */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 1001;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+    
+    .modal.show {
+      display: flex;
+      opacity: 1;
+    }
+    
+    .modal-content {
+      background-color: rgba(0, 40, 0, 0.95);
+      color: lime;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 30px rgba(0, 255, 0, 0.4);
+      width: 80%;
+      max-width: 800px;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+      border: 1px solid rgba(0, 255, 0, 0.3);
+    }
+    
+    .close-button {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 24px;
+      color: #00ff88;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease-out;
+    }
+    
+    .close-button:hover {
+      color: #00ffaa;
+      text-shadow: 0 0 8px rgba(0, 255, 128, 0.8);
+    }
+    
+    /* Rules content (for the modal) */
+    .rules-content h2 {
+      color: #00ff88;
+      text-align: center;
+      margin-top: 0;
+      border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+      padding-bottom: 10px;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+      font-size: 24px;
+    }
+    
+    .rules-content h3 {
+      color: #00ff88;
+      margin-bottom: 5px;
+      margin-top: 20px;
+      font-size: 18px;
+    }
+    
+    .rules-content p {
+      margin: 10px 0;
+      line-height: 1.5;
+      font-size: 16px;
+    }
+    
+    .rules-content ul {
+      padding-left: 25px;
+      margin: 10px 0;
+    }
+    
+    .rules-content li {
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="console">
+    <div class="difficulty-container">
+      <span>Difficulty: </span>
+      <select id="difficultySelector">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </div>
+    
+    <div class="game-content">
+      <!-- Main Game Area -->
+      <div class="game-area">
+        <div class="grid" id="numberGrid"></div>
+        <div class="bins-container" id="binsContainer">
+          <div class="bin" id="bin1" data-bin-name="Alpha">
+            <div class="bin-counter">0%</div>
+            <div class="bin-fill"></div>
+            <div class="fill-switch" title="Fill instantly">▲</div>
+          </div>
+          <div class="bin" id="bin2" data-bin-name="Beta">
+            <div class="bin-counter">0%</div>
+            <div class="bin-fill"></div>
+            <div class="fill-switch" title="Fill instantly">▲</div>
+          </div>
+          <div class="bin" id="bin3" data-bin-name="Gamma">
+            <div class="bin-counter">0%</div>
+            <div class="bin-fill"></div>
+            <div class="fill-switch" title="Fill instantly">▲</div>
+          </div>
+          <div class="bin" id="bin4" data-bin-name="Delta">
+            <div class="bin-counter">0%</div>
+            <div class="bin-fill"></div>
+            <div class="fill-switch" title="Fill instantly">▲</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="timer-container" id="timerContainer">Time: 00:00:00</div>
+  </div>
+  
+  <!-- Success message element for celebration feedback -->
+  <div class="success-message" id="successMessage">Great catch! +50 points</div>
+  
+  <!-- Rules Button -->
+  <button class="rules-button" id="rulesButton">Game Rules</button>
+  
+  <!-- Rules Modal Popup -->
+  <div class="modal" id="rulesModal">
+    <div class="modal-content">
+      <button class="close-button" id="closeButton">&times;</button>
+      <div class="rules-content">
+        <h2>Game Rules</h2>
+        
+        <h3>Basic Gameplay</h3>
+        <p>Click on numbers to send them to data bins. Your goal is to fill all bins to 100% capacity.</p>
+        
+        <h3>Scoring System</h3>
+        <ul>
+          <li><strong>Regular Number:</strong> +1 unit to the selected bin (approx. 0.1% fill)</li>
+          <li><strong>Highlighted Number:</strong> +50 units to the bin (approx. 5% fill) and +50 points to your score</li>
+          <li><strong>Proximity Bonus:</strong> When you click any number, all numbers within close proximity to your cursor are also collected automatically</li>
+        </ul>
+        
+        <h3>Proximity Mechanics</h3>
+        <p>The proximity feature works as follows:</p>
+        <ul>
+          <li>When you click a number, any other numbers within a small radius of your cursor will also be collected</li>
+          <li>Each additional number collected through proximity adds +1 unit to the same bin</li>
+          <li>Proximity collection creates a chain reaction effect, allowing you to collect multiple numbers with a single click</li>
+          <li>Numbers collected through proximity don't award bonus points, only bin fill</li>
+        </ul>
+        
+        <h3>Highlighted Numbers</h3>
+        <p>Glowing green numbers appear periodically. These are high-value targets:</p>
+        <ul>
+          <li>They contribute 50x more to bin filling than regular numbers</li>
+          <li>They award +50 points to your score</li>
+          <li>The duration they stay visible depends on your selected difficulty</li>
+          <li>Numbers surrounding the highlighted number will glow slightly, making them easier to spot</li>
+        </ul>
+        
+        <h3>Power-Ups</h3>
+        <ul>
+          <li><strong>Double Fill:</strong> Doubles the content of your least filled bin</li>
+          <li><strong>Instant 50%:</strong> Adds 50% instantly to a random bin</li>
+          <li><strong>Points Booster:</strong> Awards 100 bonus points to your score</li>
+        </ul>
+        
+        <h3>Bins</h3>
+        <p>Each bin has a "Fill" button (▲) that instantly fills it to 100%. This is a one-time use per bin.</p>
+        
+        <h3>Difficulty Settings</h3>
+        <ul>
+          <li><strong>Easy:</strong> Highlighted numbers remain visible for 5 seconds</li>
+          <li><strong>Medium:</strong> Highlighted numbers remain visible for 3 seconds</li>
+          <li><strong>Hard:</strong> Highlighted numbers remain visible for only 1 second</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Create the grid
+    const grid = document.getElementById('numberGrid');
+    const binsContainer = document.getElementById('binsContainer');
+    const consoleElement = document.querySelector('.console');
+    const bins = Array.from(document.querySelectorAll('.bin'));
+    const binCounters = Array.from(document.querySelectorAll('.bin-counter'));
+    const binFills = Array.from(document.querySelectorAll('.bin-fill'));
+    const successMessage = document.getElementById('successMessage');
+    const timerContainer = document.getElementById('timerContainer');
+    const rows = 15;
+    const cols = 20;
+    const numbers = [];
+    let lastMouseX = 0, lastMouseY = 0;
+    let animationFrameId = null;
+    let styleSheets = []; // Track created style sheets for cleanup
+    
+    // Timer variables
+    let startTime = new Date();
+    let timerInterval;
+    
+    // Maximum capacity for each bin
+    const MAX_BIN_CAPACITY = 1000;
+    
+    // Track the last highlighted cell for celebration
+    let lastHighlightedCell = null;
+    let userScore = 0;
+    
+    // Initialize bin counters
+    const binCounts = [0, 0, 0, 0];
+
+    // Power-up tracking
+    let lastPowerUpTime = 0;
+    
+    // Format time function for the timer
+    function formatTime(time) {
+      const hours = Math.floor(time / 3600000);
+      const minutes = Math.floor((time % 3600000) / 60000);
+      const seconds = Math.floor((time % 60000) / 1000);
+      return `Time: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    // Update timer function
+    function updateTimer() {
+      const currentTime = new Date();
+      const elapsedTime = currentTime - startTime;
+      timerContainer.textContent = formatTime(elapsedTime);
+    }
+    
+    // Start the timer
+    function startTimer() {
+      startTime = new Date();
+      timerInterval = setInterval(updateTimer, 1000);
+      updateTimer(); // Initial update
+    }
+    
+    // Start the timer immediately
+    startTimer();
+    
+    // Generate random numbers and create grid cells
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < cols; j++) {
+        const cell = document.createElement('div');
+        const randomNum = Math.floor(Math.random() * 10); // 0-9
+        cell.className = 'number';
+        cell.textContent = randomNum;
+        cell.dataset.row = i;
+        cell.dataset.col = j;
+        cell.dataset.index = i * cols + j;
+        cell.dataset.state = 'base'; // Track state: base, mouse, highlight, proximity
+        grid.appendChild(cell);
+        numbers.push(cell);
+        
+        // Apply base jiggle to all numbers
+        cell.style.animation = 'baseJiggle 1.2s infinite alternate';
+      }
+    }
+    
+    // Throttle/debounce helper
+    function throttle(callback, delay = 16) {
+      let previousCall = Date.now() - delay;
+      return function(...args) {
+        const now = Date.now();
+        if (now - previousCall >= delay) {
+          previousCall = now;
+          callback.apply(this, args);
+        }
+      };
+    }
+    
+    // Remove old style sheets to prevent memory leaks
+    function cleanupOldStyleSheets() {
+      // Keep only the last 50 style sheets
+      while (styleSheets.length > 50) {
+        const sheet = styleSheets.shift();
+        if (sheet && sheet.parentNode) {
+          sheet.parentNode.removeChild(sheet);
+        }
+      }
+    }
+    
+    // Use requestAnimationFrame for smoother mouse animation
+    function updateMouseEffect() {
+      const e = { clientX: lastMouseX, clientY: lastMouseY };
+      const maxDistance = 100; // Maximum distance for effect
+      const maxScale = 2.5; // Maximum scaling factor
+      
+      numbers.forEach(cell => {
+        // Skip cells currently being replaced or highlighted or empty cells
+        if (cell.classList.contains('replacing') || 
+            cell.dataset.state === 'highlight' || 
+            cell.classList.contains('empty')) return;
+        
+        const rect = cell.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        // Calculate distance between mouse and cell center
+        const distance = Math.sqrt(
+          Math.pow(e.clientX - centerX, 2) + 
+          Math.pow(e.clientY - centerY, 2)
+        );
+        
+        // Calculate scale based on distance - use smooth transitions
+        if (distance < maxDistance) {
+          const scale = 1 + (maxScale - 1) * (1 - distance / maxDistance);
+          const oldScale = parseFloat(cell.dataset.scale || "1.0");
+          
+          // Only update if scale has changed significantly - reduces jitter
+          if (Math.abs(scale - oldScale) > 0.05) {
+            // Store the current scale and state
+            cell.dataset.scale = scale.toFixed(3);
+            cell.dataset.state = 'mouse';
+            
+            // Apply dynamic animation with interpolation for smoother transition
+            applyMouseProximityAnimation(cell, scale);
+          }
+        } else if (cell.dataset.state === 'mouse') {
+          // Reset to base state if no longer under mouse influence 
+          // and not in proximity state
+          cell.dataset.state = 'base';
+          resetToBaseJiggle(cell);
+        }
+      });
+      
+      // Clean up old style sheets periodically
+      cleanupOldStyleSheets();
+      
+      // Continue animation loop
+      animationFrameId = requestAnimationFrame(updateMouseEffect);
+    }
+    
+    // Start the animation frame loop
+    function startMouseTracking() {
+      if (!animationFrameId) {
+        animationFrameId = requestAnimationFrame(updateMouseEffect);
+      }
+    }
+    
+    // Stop the animation frame loop when not needed
+    function stopMouseTracking() {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+    }
+    
+    // Handle mousemove event - just store position, animation handled separately
+    document.addEventListener('mousemove', throttle((e) => {
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+      
+      // Ensure animation is running
+      startMouseTracking();
+      
+      // If mouse leaves the window, we'll stop the tracking
+      document.addEventListener('mouseout', function(e) {
+        if (e.relatedTarget === null) {
+          stopMouseTracking();
+        }
+      }, { once: true });
+    }, 16)); // ~60fps throttle
+    
+    // Function to apply mouse proximity animation
+    function applyMouseProximityAnimation(element, scale) {
+      // Skip empty elements
+      if (element.classList.contains('empty')) return;
+      
+      // Use CSS transitions for smoother effect instead of regenerating keyframes
+      // This significantly reduces the jerkiness
+      
+      // Apply transform directly with jiggle effect (this creates smooth scale transitions)
+      const jiggleX = (Math.random() - 0.5) * (scale - 1) * 1.5; 
+      const jiggleY = (Math.random() - 0.5) * (scale - 1) * 1.5;
+      const jiggleRotate = (Math.random() - 0.5) * (scale - 1) * 3;
+      
+      // Set transform directly, avoiding excessive animation creation
+      element.style.animation = 'none';
+      element.style.transition = 'transform 0.05s ease-out'; // Short transition for smoother effect
+      element.style.transform = `scale(${scale}) translate(${jiggleX}px, ${jiggleY}px) rotate(${jiggleRotate}deg)`;
+      
+      // Only create custom animation if it's a larger scale that needs more jiggle
+      if (scale > 1.3) {
+        // Make animation speed proportional to scale - faster for larger scales
+        setTimeout(() => {
+          if (element.dataset.state === 'mouse' && !element.classList.contains('empty')) {
+            const animationSpeed = Math.max(0.3, 0.9 - (scale - 1) * 0.3);
+            const animName = `mouse-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            
+            // Create dynamic keyframes with the current scale
+            const keyframes = `
+              @keyframes ${animName} {
+                0% { transform: scale(${scale}) translate(0, 0) rotate(0deg); }
+                25% { transform: scale(${scale}) translate(${scale * 0.4}px, ${scale * 0.4}px) rotate(${scale * 0.4}deg); }
+                50% { transform: scale(${scale}) translate(-${scale * 0.4}px, 0px) rotate(-${scale * 0.4}deg); }
+                75% { transform: scale(${scale}) translate(0px, -${scale * 0.4}px) rotate(${scale * 0.2}deg); }
+                100% { transform: scale(${scale}) translate(-${scale * 0.4}px, ${scale * 0.4}px) rotate(-${scale * 0.2}deg); }
+              }
+            `;
+            
+            // Add the keyframes to the document
+            const styleSheet = document.createElement('style');
+            styleSheet.textContent = keyframes;
+            document.head.appendChild(styleSheet);
+            styleSheets.push(styleSheet);
+            
+            // Remove transition and apply animation
+            element.style.transition = 'none';
+            element.style.animation = `${animName} ${animationSpeed}s infinite alternate`;
+          }
+        }, 50); // Short delay before starting animation gives smoother visual effect
+      }
+    }
+    
+    // Function to reset to base jiggle
+    function resetToBaseJiggle(element) {
+      // Skip empty elements
+      if (element.classList.contains('empty')) return;
+      
+      // Use transition for smoother return to base state
+      element.style.transition = 'transform 0.2s ease-out';
+      element.style.transform = 'scale(1)';
+      
+      // After transition completes, apply base jiggle
+      setTimeout(() => {
+        if (element.dataset.state === 'base' && !element.classList.contains('empty')) {
+          element.style.transition = 'none';
+          element.style.animation = 'baseJiggle 1.2s infinite alternate';
+          delete element.dataset.scale;
+        }
+      }, 200);
+    }
+    
+    // Function to randomly highlight a number
+    function highlightRandomNumber() {
+      // Clear the previous highlighted cell reference
+      if (lastHighlightedCell) {
+        // Only clear if it's still in highlight state to avoid conflicts
+        if (lastHighlightedCell.dataset.state === 'highlight') {
+          lastHighlightedCell.dataset.state = 'base';
+          resetToBaseJiggle(lastHighlightedCell);
+          lastHighlightedCell.style.color = 'lime';
+          lastHighlightedCell.style.textShadow = '';
+          lastHighlightedCell.classList.remove('bonus-number');
+        }
+        
+        // Reset proximity cells
+        numbers.forEach(cell => {
+          if (cell.dataset.state === 'proximity') {
+            cell.dataset.state = cell.dataset.previousState || 'base';
+            
+            if (cell.dataset.state === 'base') {
+              resetToBaseJiggle(cell);
+              cell.style.color = 'lime';
+              cell.style.textShadow = '';
+            }
+          }
+        });
+      }
+    
+      // Get all numbers that are in base state (not already under mouse or highlighted)
+      const availableNumbers = numbers.filter(cell => 
+        cell.dataset.state === 'base' && !cell.classList.contains('replacing') && !cell.classList.contains('empty')
+      );
+      
+      if (availableNumbers.length === 0) return;
+      
+      // Select a random number to highlight
+      const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+      const highlightedCell = availableNumbers[randomIndex];
+      
+      // Store reference to this cell for celebration check
+      lastHighlightedCell = highlightedCell;
+      
+      // Mark it as highlighted
+      highlightedCell.dataset.state = 'highlight';
+      highlightedCell.style.animation = 'highlightJiggle 0.4s infinite alternate';
+      highlightedCell.style.color = '#00ff88';
+      highlightedCell.style.textShadow = '0 0 8px rgba(0, 255, 128, 0.7)';
+      
+      // Add bonus number class
+      highlightedCell.classList.add('bonus-number');
+      
+      // Find nearby numbers for proximity effect
+      const highlightedRow = parseInt(highlightedCell.dataset.row);
+      const highlightedCol = parseInt(highlightedCell.dataset.col);
+      
+      // Apply proximity effect to surrounding numbers
+      numbers.forEach(cell => {
+        if (cell === highlightedCell || cell.dataset.state === 'mouse' || 
+            cell.classList.contains('replacing') || cell.classList.contains('empty')) return;
+            
+        const cellRow = parseInt(cell.dataset.row);
+        const cellCol = parseInt(cell.dataset.col);
+        
+        // Calculate Manhattan distance to highlighted cell
+        const distance = Math.abs(cellRow - highlightedRow) + Math.abs(cellCol - highlightedCol);
+        
+        // Apply proximity effect to cells within 3 units
+        if (distance <= 3) {
+          // Store previous state to restore later
+          cell.dataset.previousState = cell.dataset.state;
+          cell.dataset.state = 'proximity';
+          
+          // Scale effect based on distance (closer = stronger effect)
+          const proximityScale = 1.3 - (distance * 0.1);
+          cell.style.transition = 'transform 0.15s ease-out, color 0.15s, text-shadow 0.15s';
+          cell.style.animation = `proximityJiggle ${0.6 - distance * 0.1}s infinite alternate`;
+          cell.style.color = '#00dd00';
+          cell.style.textShadow = '0 0 3px rgba(0, 255, 0, 0.5)';
+        }
+      });
+      
+      // Use the correct highlight duration based on difficulty setting
+      const highlightDuration = difficultySettings[currentDifficulty].highlightDuration;
+      
+      // Return to normal after the configured highlight duration
+      setTimeout(() => {
+        // Reset highlighted cell
+        if (highlightedCell.dataset.state === 'highlight') {
+          highlightedCell.dataset.state = 'base';
+          resetToBaseJiggle(highlightedCell);
+          highlightedCell.style.color = 'lime';
+          highlightedCell.style.textShadow = '';
+          highlightedCell.classList.remove('bonus-number');
+          
+          // Clear reference since highlight period is over
+          if (lastHighlightedCell === highlightedCell) {
+            lastHighlightedCell = null;
+          }
+        }
+        
+        // Reset proximity cells
+        numbers.forEach(cell => {
+          if (cell.dataset.state === 'proximity') {
+            cell.dataset.state = cell.dataset.previousState || 'base';
+            
+            if (cell.dataset.state === 'base') {
+              resetToBaseJiggle(cell);
+              cell.style.color = 'lime';
+              cell.style.textShadow = '';
+            }
+          }
+        });
+      }, highlightDuration);
+    }
+    
+    // Create a flying number animation from a cell to a bin
+    function createFlyingNumber(sourceCell, targetBin, isBonus = false) {
+      const cellRect = sourceCell.getBoundingClientRect();
+      const binRect = targetBin.getBoundingClientRect();
+      
+      // Create flying number element
+      const flyingNumber = document.createElement('div');
+      flyingNumber.className = 'flying-number';
+      flyingNumber.textContent = sourceCell.textContent;
+      
+      // If it's a bonus number (highlighted), make it larger and brighter
+      if (isBonus) {
+        flyingNumber.style.fontSize = '36px';
+        flyingNumber.style.color = '#00ff88';
+        flyingNumber.style.textShadow = '0 0 10px rgba(0, 255, 128, 0.9)';
+      }
+      
+      // Position at the start position
+      flyingNumber.style.left = `${cellRect.left}px`;
+      flyingNumber.style.top = `${cellRect.top}px`;
+      
+      // Append to body for absolute positioning
+      document.body.appendChild(flyingNumber);
+      
+      // Calculate end position (center of the bin)
+      const endX = binRect.left + binRect.width / 2 - cellRect.left;
+      const endY = binRect.top + binRect.height / 2 - cellRect.top;
+      
+      // Set the custom properties for the animation
+      flyingNumber.style.setProperty('--end-x', `${endX}px`);
+      flyingNumber.style.setProperty('--end-y', `${endY}px`);
+      flyingNumber.style.setProperty('--random-rotate', `${(Math.random() * 360) - 180}deg`);
+      
+      // Apply animation
+      flyingNumber.style.animation = 'fallAnimation 0.6s ease-in forwards';
+      
+      // Remove the flying number after animation completes
+      setTimeout(() => {
+        if (flyingNumber.parentNode) {
+          document.body.removeChild(flyingNumber);
+        }
+      }, 600);
+      
+      // Add glow effect to the target bin
+      targetBin.classList.add('bin-receiving');
+      setTimeout(() => {
+        targetBin.classList.remove('bin-receiving');
+      }, 600);
+    }
+    
+    // Make a cell appear empty then slowly reveal a new number
+    function revealNewNumber(cell) {
+      // Important: Store the original cell position for later reference
+      const cellIndex = parseInt(cell.dataset.index);
+      const cellRow = parseInt(cell.dataset.row);
+      const cellCol = parseInt(cell.dataset.col);
+      
+      // Mark as empty and clear all previous state
+      cell.className = 'number empty'; // Reset to just these two classes
+      cell.textContent = '';
+      cell.style.animation = 'none';
+      cell.style.transform = 'scale(1)';
+      cell.style.transition = 'none';
+      cell.style.opacity = '1';
+      
+      // Clear all data attributes except position ones
+      for (const attr in cell.dataset) {
+        if (attr !== 'row' && attr !== 'col' && attr !== 'index') {
+          delete cell.dataset[attr];
+        }
+      }
+      
+      // After a delay, reveal a new number
+      setTimeout(() => {
+        // Generate new random number
+        const randomNum = Math.floor(Math.random() * 10);
+        
+        // Set the text content directly
+        cell.textContent = randomNum;
+        
+        // Set transition for appear animation
+        cell.style.transition = 'transform 0.5s ease-out, opacity 0.5s ease-out';
+        cell.style.transform = 'scale(0.5)';
+        cell.style.opacity = '0';
+        
+        // Force reflow
+        cell.offsetHeight;
+        
+        // Start appear animation
+        cell.style.transform = 'scale(1)';
+        cell.style.opacity = '1';
+        
+        // After animation completes, completely reset the cell
+        setTimeout(() => {
+          // CRITICAL: Completely replace the old cell with a fresh one to fix event handling
+          const newCell = document.createElement('div');
+          newCell.className = 'number';
+          newCell.textContent = randomNum;
+          newCell.dataset.row = cellRow;
+          newCell.dataset.col = cellCol;
+          newCell.dataset.index = cellIndex;
+          newCell.dataset.state = 'base';
+          
+          // Replace in DOM and in our numbers array
+          cell.parentNode.replaceChild(newCell, cell);
+          numbers[cellIndex] = newCell;
+          
+          // Apply base jiggle to the fresh cell
+          newCell.style.animation = 'baseJiggle 1.2s infinite alternate';
+          
+          // Check mouse position for the new cell
+          const rect = newCell.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          const distance = Math.sqrt(
+            Math.pow(lastMouseX - centerX, 2) + 
+            Math.pow(lastMouseY - centerY, 2)
+          );
+          
+          // Apply hover effect only if mouse is nearby
+          if (distance < 100) {
+            const scale = 1 + (2.5 - 1) * (1 - distance / 100);
+            newCell.dataset.scale = scale.toFixed(3);
+            newCell.dataset.state = 'mouse';
+            applyMouseProximityAnimation(newCell, scale);
+          }
+        }, 500);
+      }, 300 + Math.random() * 400);
+    }
+    
+    // Function to show a celebration effect when user clicks the highlighted number
+    function showCelebration() {
+      userScore += 50;
+      
+      // Update the score display
+      consoleElement.dataset.score = userScore;
+      
+      // Show the success message
+      successMessage.textContent = `Great catch! +50 points (Total: ${userScore})`;
+      successMessage.classList.add('show');
+      
+      // Hide the message after a few seconds
+      setTimeout(() => {
+        successMessage.classList.remove('show');
+      }, 2000);
+
+      // Consider spawning a power-up (chance increases with score)
+      maybeSpawnPowerUp();
+    }
+
+    // Function to update bin fill levels
+    function updateBinVisuals() {
+      // Update the console score display
+      consoleElement.dataset.score = userScore;
+      
+      // Update each bin's fill level and capacity status
+      bins.forEach((bin, index) => {
+        // Ensure bin counts never exceed capacity
+        binCounts[index] = Math.min(binCounts[index], MAX_BIN_CAPACITY);
+        
+        const fillPercentage = (binCounts[index] / MAX_BIN_CAPACITY) * 100;
+        const isFull = fillPercentage >= 100;
+        
+        // Display percentage with % sign - always max at 100%
+        binCounters[index].textContent = Math.min(100, Math.floor(fillPercentage)) + '%';
+        
+        // Update the fill bar - never exceed 100% width
+        binFills[index].style.width = Math.min(100, fillPercentage) + '%';
+        
+        // Apply or remove 'full' class based on capacity
+        if (isFull && !bin.classList.contains('full')) {
+          bin.classList.add('full');
+          
+          // Show a completion message when a bin becomes full
+          const binName = bin.dataset.binName;
+          successMessage.textContent = `${binName} bin is now at 100% capacity!`;
+          successMessage.classList.add('show');
+          setTimeout(() => {
+            successMessage.classList.remove('show');
+          }, 2000);
+
+          // Consider spawning a power-up when a bin is filled
+          maybeSpawnPowerUp();
+        } else if (!isFull) {
+          bin.classList.remove('full');
+        }
+      });
+    }
+    
+    // Initialize bin visuals
+    updateBinVisuals();
+
+    // Handle click to send number to a bin
+    grid.addEventListener('click', (e) => {
+      if (e.target.classList.contains('number') && !e.target.classList.contains('empty')) {
+        const cell = e.target;
+        
+        // Skip if already in a transition
+        if (cell.classList.contains('replacing')) return;
+        
+        // Check if the clicked cell is the highlighted cell
+        const isHighlightedCell = (cell === lastHighlightedCell);
+        
+        // Check if it's a power-up
+        const isPowerUp = cell.classList.contains('powerup');
+        const powerUpType = cell.dataset.powerupType;
+        
+        // Handle power-up activation
+        if (isPowerUp) {
+          activatePowerUp(cell, powerUpType);
+          return;
+        }
+        
+        // Get mouse position for proximity calculation
+        const mouseX = lastMouseX;
+        const mouseY = lastMouseY;
+        const maxDistance = 100; // Same as hover effect distance
+        
+        // Collect all numbers within proximity of mouse
+        const proximityNumbers = [];
+        
+        // Add the clicked cell first
+        proximityNumbers.push(cell);
+        
+        // Find all other numbers in mouse proximity
+        numbers.forEach(otherCell => {
+          // Skip the clicked cell and cells already in transition or empty
+          if (otherCell === cell || 
+              otherCell.classList.contains('replacing') || 
+              otherCell.classList.contains('empty')) {
+            return;
+          }
+          
+          const rect = otherCell.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          
+          // Calculate distance between mouse and cell center
+          const distance = Math.sqrt(
+            Math.pow(mouseX - centerX, 2) + 
+            Math.pow(mouseY - centerY, 2)
+          );
+          
+          // If within proximity effect radius, add to list
+          if (distance < maxDistance) {
+            proximityNumbers.push(otherCell);
+          }
+        });
+
+        // Find available bins that aren't full
+        const availableBins = bins.filter((bin, index) => binCounts[index] < MAX_BIN_CAPACITY);
+        
+        // If all bins are full, show a message and return
+        if (availableBins.length === 0) {
+          successMessage.textContent = "All bins are at 100% capacity!";
+          successMessage.classList.add('show');
+          setTimeout(() => {
+            successMessage.classList.remove('show');
+          }, 2000);
+          return;
+        }
+        
+        // Select a random bin from the available ones
+        const randomBinIndex = Math.floor(Math.random() * availableBins.length);
+        const targetBin = availableBins[randomBinIndex];
+        const binIndex = bins.indexOf(targetBin);
+        
+        // Calculate the total contribution from this action
+        // Track total percentage change for this action
+        const currentBinPercentage = (binCounts[binIndex] / MAX_BIN_CAPACITY) * 100;
+        let totalIncrement = 0;
+        
+        // If user clicked the highlighted number, show celebration and update message
+        if (isHighlightedCell) {
+          showCelebration();
+          
+          // Add celebration effect to the bin they're going to
+          targetBin.classList.add('celebration');
+          setTimeout(() => {
+            targetBin.classList.remove('celebration');
+          }, 800);
+          
+          // Update success message to indicate the 50x bonus
+          successMessage.textContent = `Great catch! +50 points and 50x bin fill! (Total: ${userScore})`;
+          
+          // Clear the highlighted cell reference
+          lastHighlightedCell = null;
+          
+          // Add bonus contribution amount
+          totalIncrement += 50;
+          
+          // Trigger next highlight immediately
+          clearInterval(highlightInterval);
+          setTimeout(highlightRandomNumber, 100); // Small delay to ensure proper sequencing
+          
+          // Restart normal interval
+          highlightInterval = setInterval(
+            highlightRandomNumber, 
+            difficultySettings[currentDifficulty].highlightFrequency
+          );
+        }
+        
+        // Add regular contributions from proximity numbers
+        totalIncrement += proximityNumbers.length - (isHighlightedCell ? 1 : 0);
+        
+        // Calculate final percentage after this action (capped at 100%)
+        const newBinValue = Math.min(binCounts[binIndex] + totalIncrement, MAX_BIN_CAPACITY);
+        const newBinPercentage = (newBinValue / MAX_BIN_CAPACITY) * 100;
+        const percentageChange = newBinPercentage - currentBinPercentage;
+        
+        // Only create a single popup showing the total effect
+        if (percentageChange > 0) {
+          const binRect = targetBin.getBoundingClientRect();
+          const percentPopup = document.createElement('div');
+          percentPopup.className = 'percent-popup';
+          
+          // Format the text to show the change
+          percentPopup.textContent = `+${percentageChange.toFixed(1)}%`;
+          
+          // Position above the bin
+          percentPopup.style.left = `${binRect.left + binRect.width/2 - 40}px`;
+          percentPopup.style.top = `${binRect.top - 30}px`;
+          
+          // Add to document
+          document.body.appendChild(percentPopup);
+          
+          // Remove after animation completes
+          setTimeout(() => {
+            if (percentPopup.parentNode) {
+              document.body.removeChild(percentPopup);
+            }
+          }, 1000);
+        }
+        
+        // Process each proximity number with a slight delay for cascade effect
+        proximityNumbers.forEach((proximityCell, index) => {
+          // Add delay based on index (staggered animation)
+          setTimeout(() => {
+            // Mark as replacing to prevent multiple effects
+            proximityCell.classList.add('replacing');
+            
+            // Apply special celebration effect if it was the highlighted number
+            if (proximityCell === cell && isHighlightedCell) {
+              // Create a single +50 popup for points
+              const pointPopup = document.createElement('div');
+              pointPopup.className = 'point-popup';
+              pointPopup.textContent = '+50';
+              
+              // Position at the clicked cell
+              const cellRect = cell.getBoundingClientRect();
+              pointPopup.style.left = `${cellRect.left + cellRect.width/2 - 30}px`;
+              pointPopup.style.top = `${cellRect.top}px`;
+              
+              // Add to document
+              document.body.appendChild(pointPopup);
+              
+              // Remove after animation completes
+              setTimeout(() => {
+                if (pointPopup.parentNode) {
+                  document.body.removeChild(pointPopup);
+                }
+              }, 1200);
+            }
+            
+            // Send number to bin - pass isBonus flag only for the clicked highlighted cell
+            const isBonus = (proximityCell === cell && isHighlightedCell);
+            
+            // Update the bin count directly here instead of in createFlyingNumber
+            if (binCounts[binIndex] < MAX_BIN_CAPACITY) {
+              // We're only incrementing the bin value once at the end with the total amount
+            }
+            
+            // Create the flying number visual but don't update bin counts here
+            createFlyingNumber(proximityCell, targetBin, isBonus);
+            
+            // Make the cell empty and prepare for new number reveal
+            revealNewNumber(proximityCell);
+            
+            // Only update bin visuals after the last proximity number
+            if (index === proximityNumbers.length - 1) {
+              // Update bin counts with the total increment
+              binCounts[binIndex] = newBinValue;
+              updateBinVisuals();
+            }
+          }, index * 50); // 50ms between each number starting its animation
+        });
+      }
+    });
+    
+    // Handle fill switch clicks
+    document.querySelectorAll('.fill-switch').forEach((switch_, index) => {
+      switch_.addEventListener('click', () => {
+        // Get the parent bin
+        const bin = bins[index];
+        const binIndex = bins.indexOf(bin);
+        
+        // Skip if bin is already full
+        if (binCounts[binIndex] >= MAX_BIN_CAPACITY) return;
+        
+        // Calculate how much is needed to fill the bin completely
+        const remainingCapacity = MAX_BIN_CAPACITY - binCounts[binIndex];
+        
+        // Disable the switch
+        switch_.classList.add('disabled');
+        
+        // Calculate the current percentage and new percentage (100%)
+        const currentBinPercentage = (binCounts[binIndex] / MAX_BIN_CAPACITY) * 100;
+        const percentageChange = 100 - currentBinPercentage;
+        
+        // Create percentage popup
+        const binRect = bin.getBoundingClientRect();
+        const percentPopup = document.createElement('div');
+        percentPopup.className = 'percent-popup';
+        
+        // Format the text to show the change
+        percentPopup.textContent = `+${percentageChange.toFixed(1)}%`;
+        
+        // Position above the bin
+        percentPopup.style.left = `${binRect.left + binRect.width/2 - 40}px`;
+        percentPopup.style.top = `${binRect.top - 30}px`;
+        
+        // Add to document
+        document.body.appendChild(percentPopup);
+        
+        // Remove after animation completes
+        setTimeout(() => {
+          if (percentPopup.parentNode) {
+            document.body.removeChild(percentPopup);
+          }
+        }, 1000);
+        
+        // Add celebration effect to the bin
+        bin.classList.add('celebration');
+        setTimeout(() => {
+          bin.classList.remove('celebration');
+        }, 800);
+        
+        // Update bin count to full capacity
+        binCounts[binIndex] = MAX_BIN_CAPACITY;
+        
+        // Show a completion message
+        const binName = bin.dataset.binName;
+        successMessage.textContent = `${binName} bin filled to 100% capacity!`;
+        successMessage.classList.add('show');
+        setTimeout(() => {
+          successMessage.classList.remove('show');
+        }, 2000);
+        
+        // Update the bin visuals
+        updateBinVisuals();
+
+        // Opportunity to spawn a power-up when filling a bin
+        maybeSpawnPowerUp();
+      });
+    });
+
+    // Function to determine if we should spawn a power-up
+    function maybeSpawnPowerUp() {
+      const now = Date.now();
+      // Only spawn if 30 seconds have passed since the last power-up
+      if (now - lastPowerUpTime >= 30000) {
+        // 20% chance to spawn a power-up
+        if (Math.random() < 0.2) {
+          spawnPowerUp();
+        }
+      }
+    }
+
+    // Function to activate a power-up
+    function activatePowerUp(cell, powerUpType) {
+      // Create celebration effect
+      cell.classList.add('celebration');
+      
+      // Remove power-up styling
+      cell.classList.remove('powerup');
+      delete cell.dataset.powerupType;
+      
+      let powerUpMessage = '';
+      
+      switch (powerUpType) {
+        case 'doubleFill':
+          // Double fill the least filled bin
+          const leastFilledIndex = binCounts.indexOf(Math.min(...binCounts));
+          const currentFill = binCounts[leastFilledIndex];
+          const additionalFill = Math.min(currentFill, MAX_BIN_CAPACITY - currentFill);
+          binCounts[leastFilledIndex] += additionalFill;
+          
+          powerUpMessage = `Power-Up: Double Fill activated on ${bins[leastFilledIndex].dataset.binName} bin!`;
+          break;
+          
+        case 'instant50':
+          // Add 50% to a random bin that's not full
+          const availableBins = bins.filter((bin, index) => binCounts[index] < MAX_BIN_CAPACITY);
+          
+          if (availableBins.length > 0) {
+            const randomBin = availableBins[Math.floor(Math.random() * availableBins.length)];
+            const binIndex = bins.indexOf(randomBin);
+            const fillAmount = Math.floor(MAX_BIN_CAPACITY * 0.5);
+            
+            binCounts[binIndex] = Math.min(binCounts[binIndex] + fillAmount, MAX_BIN_CAPACITY);
+            powerUpMessage = `Power-Up: Instant 50% added to ${randomBin.dataset.binName} bin!`;
+          } else {
+            powerUpMessage = `Power-Up: No available bins to fill!`;
+          }
+          break;
+          
+        case 'pointsBooster':
+          // Give bonus points
+          const bonusPoints = 100;
+          userScore += bonusPoints;
+          
+          // Create a point popup
+          const pointPopup = document.createElement('div');
+          pointPopup.className = 'point-popup';
+          pointPopup.textContent = `+${bonusPoints}`;
+          pointPopup.style.fontSize = '42px'; // Larger font for the big bonus
+          
+          // Position at the clicked cell
+          const cellRect = cell.getBoundingClientRect();
+          pointPopup.style.left = `${cellRect.left + cellRect.width/2 - 40}px`;
+          pointPopup.style.top = `${cellRect.top}px`;
+          
+          // Add to document
+          document.body.appendChild(pointPopup);
+          
+          // Remove after animation completes
+          setTimeout(() => {
+            if (pointPopup.parentNode) {
+              document.body.removeChild(pointPopup);
+            }
+          }, 1200);
+          
+          powerUpMessage = `Power-Up: Points Booster! +${bonusPoints} points!`;
+          break;
+      }
+      
+      // Show power-up activation message
+      successMessage.textContent = powerUpMessage;
+      successMessage.classList.add('show');
+      setTimeout(() => {
+        successMessage.classList.remove('show');
+      }, 3000);
+      
+      // Reset the cell to normal after celebration
+      setTimeout(() => {
+        cell.classList.remove('celebration');
+        cell.dataset.state = 'base';
+        resetToBaseJiggle(cell);
+        
+        // Update bin visuals
+        updateBinVisuals();
+      }, 800);
+    }
+
+    // Game difficulty settings
+    let currentDifficulty = 'medium';
+    const difficultySelector = document.getElementById('difficultySelector');
+    
+    // Difficulty settings affect highlight duration and frequency
+    const difficultySettings = {
+      easy: {
+        highlightDuration: 5000,    // 5 seconds visible
+        highlightDelay: 500,        // 0.5 seconds delay before next one
+        highlightFrequency: 5500,   // Total cycle time (duration + delay)
+      },
+      medium: {
+        highlightDuration: 3000,    // 3 seconds visible
+        highlightDelay: 300,        // 0.3 seconds delay before next one
+        highlightFrequency: 3300,   // Total cycle time (duration + delay)
+      },
+      hard: {
+        highlightDuration: 1000,    // 1 second visible
+        highlightDelay: 100,        // 0.1 seconds delay before next one
+        highlightFrequency: 1100,   // Total cycle time (duration + delay)
+      }
+    };
+    
+    // Interval for the highlight effect
+    let highlightInterval;
+    
+    // Handle difficulty change
+    function updateDifficulty() {
+      currentDifficulty = difficultySelector.value;
+      
+      // Clear existing interval
+      clearInterval(highlightInterval);
+      
+      // Start new interval with updated settings
+      highlightInterval = setInterval(
+        highlightRandomNumber, 
+        difficultySettings[currentDifficulty].highlightFrequency
+      );
+      
+      // Show notification about difficulty change
+      successMessage.textContent = `Difficulty changed to ${currentDifficulty}`;
+      successMessage.classList.add('show');
+      setTimeout(() => {
+        successMessage.classList.remove('show');
+      }, 2000);
+    }
+    
+    // Attach change event to difficulty selector
+    difficultySelector.addEventListener('change', updateDifficulty);
+    
+    // Function to create a power-up in a random grid cell
+    function spawnPowerUp() {
+      // Update last power-up time
+      lastPowerUpTime = Date.now();
+
+      // Find available cells (not empty, not highlighted)
+      const availableCells = numbers.filter(cell => 
+        !cell.classList.contains('empty') && 
+        !cell.classList.contains('powerup') && 
+        cell.dataset.state !== 'highlight'
+      );
+      
+      if (availableCells.length === 0) return;
+      
+      // Select a random cell for the power-up
+      const randomIndex = Math.floor(Math.random() * availableCells.length);
+      const powerUpCell = availableCells[randomIndex];
+      
+      // Create power-up effect
+      powerUpCell.classList.add('powerup');
+      powerUpCell.dataset.powerupType = ['doubleFill', 'instant50', 'pointsBooster'][Math.floor(Math.random() * 3)];
+      
+      // Power-up disappears after 10 seconds if not used
+      setTimeout(() => {
+        if (powerUpCell.classList.contains('powerup')) {
+          powerUpCell.classList.remove('powerup');
+          delete powerUpCell.dataset.powerupType;
+        }
+      }, 10000);
+
+      // Notify the player about the power-up
+      successMessage.textContent = `A power-up has appeared on the grid!`;
+      successMessage.classList.add('show');
+      setTimeout(() => {
+        successMessage.classList.remove('show');
+      }, 2000);
+    }
+
+    // Start the random highlight interval
+    highlightInterval = setInterval(highlightRandomNumber, difficultySettings[currentDifficulty].highlightFrequency);
+    
+    // Start mouse tracking on page load
+    startMouseTracking();
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      stopMouseTracking();
+      styleSheets.forEach(sheet => {
+        if (sheet && sheet.parentNode) {
+          sheet.parentNode.removeChild(sheet);
+        }
+      });
+    });
+
+    // Start with a power-up after 15 seconds as a welcome boost
+    setTimeout(() => {
+      spawnPowerUp();
+    }, 15000);
+
+    // Modal functionality
+    const rulesButton = document.getElementById('rulesButton');
+    const rulesModal = document.getElementById('rulesModal');
+    const closeButton = document.getElementById('closeButton');
+
+    rulesButton.addEventListener('click', () => {
+      rulesModal.classList.add('show');
+    });
+
+    closeButton.addEventListener('click', () => {
+      rulesModal.classList.remove('show');
+    });
+
+    window.addEventListener('click', (event) => {
+      if (event.target === rulesModal) {
+        rulesModal.classList.remove('show');
+      }
+    });
+  </script>
+</body>
+</html>
