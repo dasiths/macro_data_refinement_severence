@@ -149,6 +149,7 @@
       margin-top: 20px;
       padding: 20px;
       position: relative;
+      overflow: visible; /* Ensure bin container allows overflow for lids */
     }
     
     /* Individual bin styling */
@@ -162,7 +163,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      overflow: visible; /* Changed from 'hidden' to 'visible' to show the lids */
+      overflow: hidden; /* Keep hidden for the bin itself */
       box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.1);
     }
     
@@ -172,6 +173,21 @@
       position: absolute;
       top: 10px;
       color: rgba(0, 255, 0, 0.7);
+      font-weight: bold;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+      z-index: 1;
+    }
+    
+    /* Lid container to hold lids outside bins */
+    .lid-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 0;
+      overflow: visible;
+      pointer-events: none; /* Allow clicks to pass through to elements below */
+      z-index: 25;
     }
     
     /* Bin counter */
@@ -255,28 +271,43 @@
     /* Bin lid styling and animation */
     .bin-lid-left, .bin-lid-right {
       position: absolute;
-      top: -8px; /* Moved up to make more visible - was -18px */
       width: 50%;
-      height: 12px; /* Slightly shorter height to look better */
+      height: 12px;
       background: linear-gradient(to bottom, #333 60%, #0f0 100%);
       border: 2px solid #0f0;
       border-bottom: none;
       z-index: 20;
-      transition: transform 0.25s cubic-bezier(.4,2,.6,1), box-shadow 0.2s;
-      box-shadow: 0 2px 8px rgba(0,255,0,0.3); /* Increased glow */
+      transition: transform 0.25s cubic-bezier(.4,2,.6,1), box-shadow 0.2s, background 0.5s ease-out, border-color 0.5s ease-out;
+      box-shadow: 0 2px 8px rgba(0,255,0,0.3);
+      pointer-events: none; /* Allow clicks to pass through */
     }
     .bin-lid-left {
-      left: 0;
       border-right: none;
       border-top-left-radius: 10px;
-      transform-origin: left center; /* Changed to pivot from left edge */
+      transform-origin: left center;
     }
     .bin-lid-right {
-      right: 0;
       border-left: none;
       border-top-right-radius: 10px;
-      transform-origin: right center; /* Changed to pivot from right edge */
+      transform-origin: right center;
     }
+
+    /* Apply the same style to lid when bin is full */
+    .full ~ .lid-container .bin-lid-left[data-bin-index="0"],
+    .full ~ .lid-container .bin-lid-right[data-bin-index="0"],
+    .bin:nth-child(3).full ~ .lid-container .bin-lid-left[data-bin-index="1"],
+    .bin:nth-child(3).full ~ .lid-container .bin-lid-right[data-bin-index="1"],
+    .bin:nth-child(4).full ~ .lid-container .bin-lid-left[data-bin-index="2"],
+    .bin:nth-child(4).full ~ .lid-container .bin-lid-right[data-bin-index="2"],
+    .bin:nth-child(5).full ~ .lid-container .bin-lid-left[data-bin-index="3"],
+    .bin:nth-child(5).full ~ .lid-container .bin-lid-right[data-bin-index="3"],
+    .bin:nth-child(6).full ~ .lid-container .bin-lid-left[data-bin-index="4"],
+    .bin:nth-child(6).full ~ .lid-container .bin-lid-right[data-bin-index="4"] {
+      background: linear-gradient(to bottom, #3a1010 60%, #ff6060 100%);
+      border-color: rgba(255, 100, 100, 0.7);
+      box-shadow: 0 2px 8px rgba(255, 100, 100, 0.3);
+    }
+    
     .bin-lid-left.open {
       transform: rotateZ(-60deg) translateY(-2px); /* Opening outward from left edge */
     }
@@ -693,40 +724,33 @@
       <div class="game-area">
         <div class="grid" id="numberGrid"></div>
         <div class="bins-container" id="binsContainer">
+          <!-- Lid container to hold all lids -->
+          <div class="lid-container" id="lidContainer"></div>
+          
           <div class="bin" id="bin1" data-bin-name="Alpha">
             <div class="bin-counter">0%</div>
             <div class="bin-fill"></div>
             <div class="fill-switch" title="Fill instantly">▲</div>
-            <div class="bin-lid-left"></div>
-            <div class="bin-lid-right"></div>
           </div>
           <div class="bin" id="bin2" data-bin-name="Beta">
             <div class="bin-counter">0%</div>
             <div class="bin-fill"></div>
             <div class="fill-switch" title="Fill instantly">▲</div>
-            <div class="bin-lid-left"></div>
-            <div class="bin-lid-right"></div>
           </div>
           <div class="bin" id="bin3" data-bin-name="Gamma">
             <div class="bin-counter">0%</div>
             <div class="bin-fill"></div>
             <div class="fill-switch" title="Fill instantly">▲</div>
-            <div class="bin-lid-left"></div>
-            <div class="bin-lid-right"></div>
           </div>
           <div class="bin" id="bin4" data-bin-name="Delta">
             <div class="bin-counter">0%</div>
             <div class="bin-fill"></div>
             <div class="fill-switch" title="Fill instantly">▲</div>
-            <div class="bin-lid-left"></div>
-            <div class="bin-lid-right"></div>
           </div>
           <div class="bin" id="bin5" data-bin-name="Epsilon">
             <div class="bin-counter">0%</div>
             <div class="bin-fill"></div>
             <div class="fill-switch" title="Fill instantly">▲</div>
-            <div class="bin-lid-left"></div>
-            <div class="bin-lid-right"></div>
           </div>
         </div>
       </div>
@@ -1168,18 +1192,96 @@
     
     // Animate the bin double doors open/close
     function openBinDoors(bin, binIndex) {
-      const lidLeft = bin.querySelector('.bin-lid-left');
-      const lidRight = bin.querySelector('.bin-lid-right');
-      if (!lidLeft || !lidRight) return;
-      lidLeft.classList.add('open');
-      lidRight.classList.add('open');
+      // Find lids in the lid container that correspond to this bin
+      const lidContainer = document.getElementById('lidContainer');
+      const allLids = lidContainer.querySelectorAll('.bin-lid-left, .bin-lid-right');
+      
+      // Find lids matching this bin's index
+      allLids.forEach(lid => {
+        if (parseInt(lid.dataset.binIndex) === binIndex) {
+          lid.classList.add('open');
+        }
+      });
     }
+    
     function closeBinDoors(bin, binIndex) {
-      const lidLeft = bin.querySelector('.bin-lid-left');
-      const lidRight = bin.querySelector('.bin-lid-right');
-      if (!lidLeft || !lidRight) return;
-      lidLeft.classList.remove('open');
-      lidRight.classList.remove('open');
+      // Find lids in the lid container that correspond to this bin
+      const lidContainer = document.getElementById('lidContainer');
+      const allLids = lidContainer.querySelectorAll('.bin-lid-left, .bin-lid-right');
+      
+      // Find lids matching this bin's index
+      allLids.forEach(lid => {
+        if (parseInt(lid.dataset.binIndex) === binIndex) {
+          lid.classList.remove('open');
+        }
+      });
+    }
+
+    // Create bin lids and position them correctly
+    function createBinLids() {
+      const lidContainer = document.getElementById('lidContainer');
+      
+      // Clear any existing lids
+      lidContainer.innerHTML = '';
+      
+      // Create lids for each bin
+      bins.forEach((bin, index) => {
+        const binRect = bin.getBoundingClientRect();
+        const binLeftOffset = binRect.left - binsContainer.getBoundingClientRect().left;
+        
+        // Create left lid
+        const leftLid = document.createElement('div');
+        leftLid.className = 'bin-lid-left';
+        leftLid.style.left = `${binLeftOffset}px`;
+        // Position at the top of the bin instead of above it
+        leftLid.style.top = `${binRect.top - binsContainer.getBoundingClientRect().top}px`;
+        leftLid.style.width = `${binRect.width / 2}px`;
+        leftLid.dataset.binIndex = index;
+        lidContainer.appendChild(leftLid);
+        
+        // Create right lid
+        const rightLid = document.createElement('div');
+        rightLid.className = 'bin-lid-right';
+        rightLid.style.left = `${binLeftOffset + binRect.width / 2}px`;
+        // Position at the top of the bin instead of above it
+        rightLid.style.top = `${binRect.top - binsContainer.getBoundingClientRect().top}px`;
+        rightLid.style.width = `${binRect.width / 2}px`;
+        rightLid.dataset.binIndex = index;
+        lidContainer.appendChild(rightLid);
+      });
+    }
+    
+    // Update the lid positions when window is resized
+    window.addEventListener('resize', () => {
+      createBinLids();
+    });
+    
+    // Call once to initialize
+    window.addEventListener('load', () => {
+      createBinLids();
+    });
+
+    // Function to update lid colors based on bin state
+    function updateLidColors() {
+      const lidContainer = document.getElementById('lidContainer');
+      if (!lidContainer) return;
+      
+      bins.forEach((bin, index) => {
+        const isFull = bin.classList.contains('full');
+        const binLids = Array.from(lidContainer.querySelectorAll(`.bin-lid-left[data-bin-index="${index}"], .bin-lid-right[data-bin-index="${index}"]`));
+        
+        binLids.forEach(lid => {
+          if (isFull) {
+            lid.style.background = 'linear-gradient(to bottom, #3a1010 60%, #ff6060 100%)';
+            lid.style.borderColor = 'rgba(255, 100, 100, 0.7)';
+            lid.style.boxShadow = '0 2px 8px rgba(255, 100, 100, 0.3)';
+          } else {
+            lid.style.background = 'linear-gradient(to bottom, #333 60%, #0f0 100%)';
+            lid.style.borderColor = '#0f0';
+            lid.style.boxShadow = '0 2px 8px rgba(0, 255, 0, 0.3)';
+          }
+        });
+      });
     }
 
     // Create a flying number animation from a cell to a bin
@@ -1206,9 +1308,9 @@
       // Append to body for absolute positioning
       document.body.appendChild(flyingNumber);
       
-      // Calculate end position (center of the bin)
+      // Calculate end position (top of the bin, where the lids open)
       const endX = binRect.left + binRect.width / 2 - cellRect.left;
-      const endY = binRect.top + binRect.height / 2 - cellRect.top;
+      const endY = binRect.top - cellRect.top; // Target the top of the bin instead of center
       
       // Set the custom properties for the animation
       flyingNumber.style.setProperty('--end-x', `${endX}px`);
@@ -1381,6 +1483,9 @@
           bin.classList.remove('full');
         }
       });
+      
+      // Update lid colors based on bin state
+      updateLidColors();
     }
     
     // Initialize bin visuals
