@@ -15,6 +15,37 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      position: relative; /* Added for sine wave positioning */
+    }
+    
+    /* Sine wave background container */
+    .sine-wave-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none; /* Allow clicks to pass through */
+    }
+    
+    /* Quote element that will flow along the sine wave */
+    .sine-wave-quote-container {
+      position: absolute;
+      color: rgba(0, 255, 0, 0.6); /* Increased from 0.4 to 0.6 for better visibility */
+      font-size: 25px; /* Changed from 40px to 25px for better readability */
+      white-space: nowrap;
+      opacity: 0;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.5); /* Increased shadow for better contrast */
+      transition: opacity 2s ease-in-out;
+    }
+    
+    /* Style for the spaces between words to make them more explicit */
+    .sine-wave-space {
+      display: inline-block;
+      width: 12px; /* Explicit width for spaces */
+      position: relative;
     }
     
     .console {
@@ -30,6 +61,7 @@
       display: flex;
       flex-direction: column;
       padding-top: 80px; /* Increased padding-top to make room for the title */
+      z-index: 1; /* Ensure console is above the sine wave */
     }
     
     .console::before {
@@ -753,6 +785,7 @@
   </style>
 </head>
 <body>
+  <div class="sine-wave-container" id="sineWaveContainer"></div>
   <div class="console">
     <div class="total-progress-container">
       <div class="total-progress-bar">
@@ -901,6 +934,7 @@
     const binFills = Array.from(document.querySelectorAll('.bin-fill'));
     const successMessage = document.getElementById('successMessage');
     const timerContainer = document.getElementById('timerContainer');
+    const sineWaveContainer = document.getElementById('sineWaveContainer');
     const rows = 10;
     const cols = 15;
     const numbers = [];
@@ -927,6 +961,34 @@
 
     // Track incoming numbers for each bin to control double-door animation
     const binIncomingCounts = [0, 0, 0, 0, 0];
+    
+    // Lumon quotes for the sine wave animation
+    const lumonQuotes = [
+      "And all in Lumon's care shall revel in the bounty of the incentives spur.",
+      "Come now, children of my industry, and know the children of my blood.",
+      "I know that death is near upon me, because people have begun to ask what I see as my life's great achievement.",
+      "In my life, I have identified four components, which I call tempers, from which are derived every human soul.",
+      "Woe. Frolic. Dread. Malice.",
+      "Each man's character is defined by the precise ratio that resides in him.",
+      "I walked into the cave of my own mind, and there I tamed them.",
+      "Should you tame the tempers as I did mine, then the world shall become but your appendage.",
+      "Keep a merry humor ever in your heart.",
+      "Let not weakness live in your veins. Cherished workers, drown it inside you.",
+      "Rise up from your deathbed and sally forth, more perfect for the struggle.",
+      "Render not my creation in miniature.",
+      "Be content in my words, and dally not in the scholastic pursuits of lesser men.",
+      "No workplace shall be repurposed for slumber.",
+      "And I shall whisper to ye dutiful through the ages.",
+      "In your noblest thoughts and epiphanies shall be my voice.",
+      "You are my mouth, and through ye, I will whisper on when I am 10 centuries demised.",
+      "The light of discovery shines truer upon a virgin meadow than a beaten path.",
+      "Be ever merry.",
+      "The surest way to tame a prisoner is to let him believe he's free.",
+      "Tame in me the tempers four that I may serve thee evermore.",
+      "Place in me the values nine that I may feel thy touch divine.",
+      "Endow in each swing of your ax or swipe of your pen the sum of your affections.",
+      "No higher purpose may be found than this. Nor any higher love."
+    ];
     
     // Format time function for the timer
     function formatTime(time) {
@@ -2099,6 +2161,186 @@
       if (event.target === rulesModal) {
         rulesModal.classList.remove('show');
       }
+    });
+
+    // Function to create sine wave quotes
+    function createSineWaveQuotes() {
+      // Clear existing quotes
+      const existingQuotes = document.querySelectorAll('.sine-wave-quote');
+      existingQuotes.forEach(quote => {
+        quote.remove();
+      });
+      
+      // Use the Lumon quotes we defined earlier
+      const numQuotes = Math.floor(Math.random() * 2) + 1; // 1-2 quotes at once (reduced for better performance with letter animations)
+      const selectedQuotes = [];
+      
+      // Select random quotes without duplicates
+      while(selectedQuotes.length < numQuotes) {
+        const randomIndex = Math.floor(Math.random() * lumonQuotes.length);
+        const quote = lumonQuotes[randomIndex];
+        if (!selectedQuotes.includes(quote)) {
+          selectedQuotes.push(quote);
+        }
+      }
+
+      const containerWidth = window.innerWidth;
+      const containerHeight = window.innerHeight;
+
+      selectedQuotes.forEach((quote, quoteIndex) => {
+        const quoteContainer = document.createElement('div');
+        quoteContainer.className = 'sine-wave-quote-container';
+        
+        // Random starting position offscreen to the right
+        const startX = containerWidth + Math.random() * 200;
+        // Random vertical position throughout the screen height
+        const startY = 100 + Math.random() * (containerHeight - 200);
+        // Base speed for the entire quote
+        const baseSpeed = 0.5 + Math.random() * 1;
+        
+        quoteContainer.style.position = 'absolute';
+        quoteContainer.style.left = `${startX}px`;
+        quoteContainer.style.top = `${startY}px`;
+        quoteContainer.style.opacity = '0';
+        quoteContainer.style.whiteSpace = 'nowrap';
+        quoteContainer.dataset.speed = baseSpeed;
+        quoteContainer.dataset.baseY = startY;
+        
+        // Split the quote into individual characters and create spans for each
+        [...quote].forEach((char, i) => {
+          if (char === ' ') {
+            // Create an explicit space element
+            const spaceSpan = document.createElement('span');
+            spaceSpan.className = 'sine-wave-space';
+            spaceSpan.innerHTML = '&nbsp;';
+            quoteContainer.appendChild(spaceSpan);
+          } else {
+            const letterSpan = document.createElement('span');
+            letterSpan.textContent = char;
+            letterSpan.style.display = 'inline-block';
+            letterSpan.style.position = 'relative';
+            
+            // Set individual animation parameters for each letter - increased amplitude
+            letterSpan.dataset.amplitude = 15 + Math.random() * 25; // Increased from 5-20px to 15-40px
+            letterSpan.dataset.frequency = 0.5 + Math.random() * 1.5;
+            letterSpan.dataset.phase = Math.random() * Math.PI * 2;
+            
+            quoteContainer.appendChild(letterSpan);
+          }
+        });
+        
+        sineWaveContainer.appendChild(quoteContainer);
+
+        // Fade in the entire quote after a small delay
+        setTimeout(() => {
+          quoteContainer.style.opacity = '0.7';
+        }, 500 + quoteIndex * 300);
+      });
+    }
+
+    // Animate the sine wave quotes - each letter follows its own sine wave path
+    function animateSineWaves() {
+      const quoteContainers = document.querySelectorAll('.sine-wave-quote-container');
+      const time = Date.now() / 1000; // Time in seconds
+      
+      quoteContainers.forEach(quoteContainer => {
+        // Move the entire quote container horizontally
+        const speed = parseFloat(quoteContainer.dataset.speed);
+        const currentLeft = parseFloat(quoteContainer.style.left);
+        const newLeft = currentLeft - speed;
+        quoteContainer.style.left = `${newLeft}px`;
+        
+        // Animate each letter within the quote
+        const letters = quoteContainer.querySelectorAll('span');
+        letters.forEach((letter, index) => {
+          const amplitude = parseFloat(letter.dataset.amplitude);
+          const frequency = parseFloat(letter.dataset.frequency);
+          const phase = parseFloat(letter.dataset.phase);
+          
+          // Calculate vertical position based on sine wave
+          const yOffset = amplitude * Math.sin((time * frequency) + phase + (index * 0.2));
+          letter.style.transform = `translateY(${yOffset}px)`;
+        });
+        
+        // Remove if offscreen to the left
+        if (newLeft < -quoteContainer.offsetWidth) {
+          quoteContainer.remove();
+        }
+      });
+      
+      // If all quotes are gone, create new ones
+      if (document.querySelectorAll('.sine-wave-quote-container').length === 0) {
+        createSineWaveQuotes();
+      }
+      
+      requestAnimationFrame(animateSineWaves);
+    }
+
+    // Initialize sine wave quotes
+    createSineWaveQuotes();
+    requestAnimationFrame(animateSineWaves);
+    
+    // Periodically add new quotes
+    setInterval(() => {
+      if (Math.random() > 0.7 && document.querySelectorAll('.sine-wave-quote-container').length < 3) {
+        const containerWidth = window.innerWidth;
+        const containerHeight = window.innerHeight;
+        
+        const quoteContainer = document.createElement('div');
+        quoteContainer.className = 'sine-wave-quote-container';
+        
+        // Random quote
+        const randomQuote = lumonQuotes[Math.floor(Math.random() * lumonQuotes.length)];
+        
+        // Start offscreen to the right
+        const startX = containerWidth + 50;
+        const startY = 100 + Math.random() * (containerHeight - 200);
+        const baseSpeed = 0.5 + Math.random() * 1;
+        
+        quoteContainer.style.position = 'absolute';
+        quoteContainer.style.left = `${startX}px`;
+        quoteContainer.style.top = `${startY}px`;
+        quoteContainer.style.opacity = '0';
+        quoteContainer.style.whiteSpace = 'nowrap';
+        quoteContainer.dataset.speed = baseSpeed;
+        quoteContainer.dataset.baseY = startY;
+        
+        // Split the quote into individual characters and create spans for each
+        [...randomQuote].forEach((char, i) => {
+          if (char === ' ') {
+            // Create an explicit space element
+            const spaceSpan = document.createElement('span');
+            spaceSpan.className = 'sine-wave-space';
+            spaceSpan.innerHTML = '&nbsp;';
+            quoteContainer.appendChild(spaceSpan);
+          } else {
+            const letterSpan = document.createElement('span');
+            letterSpan.textContent = char;
+            letterSpan.style.display = 'inline-block';
+            letterSpan.style.position = 'relative';
+            
+            // Set individual animation parameters for each letter - increased amplitude
+            letterSpan.dataset.amplitude = 15 + Math.random() * 25; // Increased from 5-20px to 15-40px
+            letterSpan.dataset.frequency = 0.5 + Math.random() * 1.5;
+            letterSpan.dataset.phase = Math.random() * Math.PI * 2;
+            
+            quoteContainer.appendChild(letterSpan);
+          }
+        });
+        
+        sineWaveContainer.appendChild(quoteContainer);
+        
+        // Fade in
+        setTimeout(() => {
+          quoteContainer.style.opacity = '0.7';
+        }, 200);
+      }
+    }, 5000);
+    
+    // Resize event handler to adjust sine wave positions on window resize
+    window.addEventListener('resize', () => {
+      // Recreate sine waves when window is resized
+      createSineWaveQuotes();
     });
   </script>
 </body>
