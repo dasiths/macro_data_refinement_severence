@@ -26,6 +26,8 @@ This game captures the essence of that peculiar work while transforming it into 
 4. Use the fill buttons strategically when you need a quick boost
 5. Try to fill all bins to 100% capacity
 
+![aGameplay demo](demo.gif)
+
 ## "Please enjoy all numbers equally."
 
 Unlike Lumon's employees, you're free to leave at any time - no need for the "Break Room." But we suspect you'll want to stay until you've refined all that mysterious data.

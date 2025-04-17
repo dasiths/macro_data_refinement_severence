@@ -838,6 +838,19 @@
       color: #000;
     }
     
+    /* Text blur animation for ASCII art */
+    @keyframes textBlurEffect {
+      0% { filter: blur(0px); }
+      25% { filter: blur(1.5px); }
+      50% { filter: blur(0.8px); }
+      75% { filter: blur(2px); }
+      100% { filter: blur(0px); }
+    }
+    
+    .ascii-blur {
+      animation: textBlurEffect 0.8s ease-in-out;
+    }
+    
     /* Rules content (for the modal) */
     .rules-content h2 {
       color: #00ff88;
@@ -1953,6 +1966,9 @@
               // Set the ASCII art after the flickering effects
               asciiContainer.textContent = elevatorAscii;
               elevatorPassageDiv.classList.remove('heavy-flicker');
+              
+              // Start the random text blur effect
+              startRandomTextBlurEffect();
             }, 700); // Duration of the heavy-flicker animation
             
           }, 2000); // Time for second phase of flickering
@@ -1960,6 +1976,46 @@
         }, 300); // Short delay after first flicker
         
       }, 700); // Duration of the first heavy-flicker animation
+    }
+    
+    // Function to randomly apply the blur effect to the ASCII art
+    function startRandomTextBlurEffect() {
+      const asciiArt = document.querySelector('.ascii-art');
+      let blurEffectRunning = false;
+      
+      // Function to apply a single blur effect cycle
+      function applyBlurEffect() {
+        // Don't start a new effect if one is already running
+        if (blurEffectRunning) return;
+        
+        blurEffectRunning = true;
+        
+        // Add the blur class to start the animation
+        asciiArt.classList.add('ascii-blur');
+        
+        // Remove the class after animation completes
+        setTimeout(() => {
+          asciiArt.classList.remove('ascii-blur');
+          blurEffectRunning = false;
+        }, 800); // Duration matches the CSS animation (textBlurEffect)
+      }
+      
+      // Start applying blur effects at random intervals
+      function scheduleNextBlur() {
+        // Random time between 1-4 seconds
+        const randomDelay = 1000 + Math.random() * 3000;
+        
+        setTimeout(() => {
+          applyBlurEffect();
+          // Schedule the next blur effect
+          scheduleNextBlur();
+        }, randomDelay);
+      }
+      
+      // Start the first blur effect after a short delay
+      setTimeout(() => {
+        scheduleNextBlur();
+      }, 500);
     }
     
     // Handle click on the Cold Harbour button
