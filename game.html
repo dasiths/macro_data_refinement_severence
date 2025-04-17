@@ -786,6 +786,43 @@
       top: 0;
       left: 0;
     }
+
+    /* Flickering effect for elevator scene */
+    @keyframes flickerEffect {
+      0% { opacity: 1; }
+      3% { opacity: 0.4; }
+      6% { opacity: 0.8; }
+      7% { opacity: 0.3; }
+      8% { opacity: 0.7; }
+      9% { opacity: 0.2; }
+      10% { opacity: 0.9; }
+      30% { opacity: 1; }
+      50% { opacity: 0.9; }
+      51% { opacity: 0.7; }
+      52% { opacity: 0.3; }
+      53% { opacity: 0.8; }
+      54% { opacity: 0.4; }
+      55% { opacity: 0.6; }
+      56% { opacity: 0.3; }
+      57% { opacity: 1; }
+      70% { opacity: 0.8; }
+      71% { opacity: 0.3; }
+      80% { opacity: 0.9; }
+      81% { opacity: 0.2; }
+      82% { opacity: 0.8; }
+      87% { opacity: 0.7; }
+      90% { opacity: 0.3; }
+      95% { opacity: 0.8; }
+      100% { opacity: 1; }
+    }
+
+    .flickering-lights {
+      animation: flickerEffect 2s ease-in-out;
+    }
+
+    .heavy-flicker {
+      animation: flickerEffect 0.7s ease-in-out;
+    }
     
     .ascii-art {
       white-space: pre;
@@ -1879,14 +1916,50 @@
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%%%%%%%%%%%%%%%%%%%%%%%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       `;
       
-      // Set the ASCII art in the elevator modal
-      document.getElementById('elevatorPassage').textContent = elevatorAscii;
-      
       // Hide completion modal
       document.getElementById('completionModal').classList.remove('show');
       
-      // Show elevator modal
-      document.getElementById('elevatorModal').classList.add('show');
+      // Reference to the elevator modal and its ASCII art container
+      const elevatorModal = document.getElementById('elevatorModal');
+      const asciiContainer = document.getElementById('elevatorPassage');
+      
+      // First show the modal with no ASCII art yet
+      elevatorModal.classList.add('show');
+      asciiContainer.textContent = '';
+      
+      // Apply a brief flickering effect before showing ASCII art
+      const elevatorPassageDiv = document.querySelector('.elevator-passage');
+      
+      // First heavy flicker
+      elevatorPassageDiv.classList.add('heavy-flicker');
+      
+      // After the first flicker completes, start the sequence of flickering effects
+      setTimeout(() => {
+        // Remove the first flicker effect
+        elevatorPassageDiv.classList.remove('heavy-flicker');
+        
+        // Add regular flickering effects with small delays between them
+        setTimeout(() => {
+          elevatorPassageDiv.classList.add('flickering-lights');
+          
+          // After a longer flickering session, show the ASCII art
+          setTimeout(() => {
+            // Apply another heavy flicker just before showing ASCII
+            elevatorPassageDiv.classList.remove('flickering-lights');
+            elevatorPassageDiv.classList.add('heavy-flicker');
+            
+            // After final heavy flicker, show the ASCII
+            setTimeout(() => {
+              // Set the ASCII art after the flickering effects
+              asciiContainer.textContent = elevatorAscii;
+              elevatorPassageDiv.classList.remove('heavy-flicker');
+            }, 700); // Duration of the heavy-flicker animation
+            
+          }, 2000); // Time for second phase of flickering
+          
+        }, 300); // Short delay after first flicker
+        
+      }, 700); // Duration of the first heavy-flicker animation
     }
     
     // Handle click on the Cold Harbour button
