@@ -29,6 +29,7 @@
       position: relative;
       display: flex;
       flex-direction: column;
+      padding-top: 80px; /* Increased padding-top to make room for the title */
     }
     
     .console::before {
@@ -51,6 +52,47 @@
     /* Update console heading with score */
     .console[data-score]::before {
       content: "Macro Data Refinement - Score: " attr(data-score);
+    }
+    
+    /* Total progress bar styles */
+    .total-progress-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+      background-color: rgba(0, 40, 0, 0.4);
+      border-radius: 5px;
+      padding: 10px 15px;
+      box-shadow: 0 0 8px rgba(0, 255, 0, 0.2);
+    }
+    
+    .total-progress-bar {
+      flex: 1;
+      height: 12px;
+      background-color: rgba(0, 60, 0, 0.5);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-right: 15px;
+      box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(0, 255, 0, 0.2);
+    }
+    
+    .total-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(to right, #00ff00, #00ffaa);
+      border-radius: 6px;
+      transition: width 0.5s ease-out;
+      box-shadow: 0 0 10px rgba(0, 255, 128, 0.3);
+    }
+    
+    .total-progress-text {
+      color: #00ff88;
+      font-size: 16px;
+      font-weight: bold;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+      min-width: 80px;
+      text-align: right;
     }
     
     /* Game content wrapper */
@@ -171,7 +213,8 @@
       content: attr(data-bin-name);
       font-size: 16px;
       position: absolute;
-      top: 10px;
+      top: 50%;
+      transform: translateY(-50%);
       color: rgba(0, 255, 0, 0.7);
       font-weight: bold;
       text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
@@ -233,9 +276,8 @@
     /* Fill switch styling */
     .fill-switch {
       position: absolute;
-      right: 5px;  /* Changed from -40px to 5px to position inside the bin */
-      top: 5px;    /* Changed from 50% to 5px for top positioning */
-      transform: none; /* Removed translateY(-50%) */
+      right: 10px;    /* Changed to position at bottom right */
+      bottom: 10px;   /* Changed to position at bottom of bin */
       width: 30px;
       height: 20px;
       background-color: rgba(0, 80, 0, 0.5);
@@ -248,7 +290,7 @@
       font-size: 14px;
       color: rgba(0, 255, 0, 0.8);
       transition: all 0.2s ease-out;
-      z-index: 5; /* Added z-index to ensure visibility */
+      z-index: 5; /* Ensure it stays above other bin elements */
     }
     
     .fill-switch:hover {
@@ -710,13 +752,11 @@
 </head>
 <body>
   <div class="console">
-    <div class="difficulty-container">
-      <span>Difficulty: </span>
-      <select id="difficultySelector">
-        <option value="easy">Easy</option>
-        <option value="medium" selected>Medium</option>
-        <option value="hard">Hard</option>
-      </select>
+    <div class="total-progress-container">
+      <div class="total-progress-bar">
+        <div class="total-progress-fill"></div>
+      </div>
+      <div class="total-progress-text">Total: 0%</div>
     </div>
     
     <div class="game-content">
@@ -762,8 +802,22 @@
   <!-- Success message element for celebration feedback -->
   <div class="success-message" id="successMessage">Great catch! +50 points</div>
   
-  <!-- Rules Button -->
-  <button class="rules-button" id="rulesButton">Game Rules</button>
+  <!-- Difficulty selector container - moved to top left -->
+  <div style="position: fixed; top: 20px; left: 20px; z-index: 1000;">
+    <div class="difficulty-container" style="margin: 0; background: rgba(0, 40, 0, 0.7); padding: 8px 15px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);">
+      <span style="color: #00ff88; text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);">Difficulty: </span>
+      <select id="difficultySelector">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </div>
+  </div>
+  
+  <!-- Game rules button container - remains at bottom right -->
+  <div style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+    <button class="rules-button" id="rulesButton">Game Rules</button>
+  </div>
   
   <!-- Rules Modal Popup -->
   <div class="modal" id="rulesModal">
@@ -1486,8 +1540,40 @@
       
       // Update lid colors based on bin state
       updateLidColors();
+      
+      // Update total progress bar
+      updateTotalProgress();
     }
     
+    // Function to update the total progress bar
+    function updateTotalProgress() {
+      const totalProgressFill = document.querySelector('.total-progress-fill');
+      const totalProgressText = document.querySelector('.total-progress-text');
+      
+      // Calculate total percentage across all bins
+      const totalCapacity = MAX_BIN_CAPACITY * binCounts.length;
+      const totalFilled = binCounts.reduce((sum, count) => sum + count, 0);
+      const totalPercentage = (totalFilled / totalCapacity) * 100;
+      
+      // Update the progress bar
+      totalProgressFill.style.width = `${Math.min(100, totalPercentage)}%`;
+      totalProgressText.textContent = `Total: ${Math.min(100, Math.floor(totalPercentage))}%`;
+      
+      // Check if all bins are full
+      if (totalPercentage >= 100) {
+        // Special celebration for completing all bins
+        setTimeout(() => {
+          successMessage.textContent = `🎉 CONGRATULATIONS! All data bins at 100% capacity! 🎉`;
+          successMessage.classList.add('show');
+          
+          // Keep the message longer for this major achievement
+          setTimeout(() => {
+            successMessage.classList.remove('show');
+          }, 5000);
+        }, 100);
+      }
+    }
+
     // Initialize bin visuals
     updateBinVisuals();
 
