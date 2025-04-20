@@ -899,6 +899,107 @@
       z-index: 10;
       padding-bottom: 10px; /* Add padding to create more space above timer */
     }
+
+    /* Resolution warning modal */
+    .resolution-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    
+    .resolution-modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .resolution-content {
+      background-color: rgba(0, 40, 0, 0.9);
+      color: #00ff88;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+      padding: 30px;
+      border-radius: 8px;
+      max-width: 600px;
+      text-align: center;
+      font-family: monospace;
+      border: 2px solid rgba(0, 255, 128, 0.4);
+      box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+    }
+    
+    .resolution-content h2 {
+      margin-top: 0;
+      font-size: 24px;
+      border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+      padding-bottom: 15px;
+    }
+    
+    .resolution-content p {
+      margin: 15px 0;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    
+    .resolution-info {
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 5px;
+      margin: 15px 0;
+      display: inline-block;
+      min-width: 250px;
+    }
+    
+    .resolution-info span {
+      font-weight: bold;
+      font-size: 18px;
+    }
+    
+    .resolution-status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    
+    .status-optimal {
+      background-color: rgba(0, 100, 0, 0.3);
+    }
+    
+    .status-suboptimal {
+      background-color: rgba(100, 100, 0, 0.3);
+    }
+    
+    .status-low {
+      background-color: rgba(100, 0, 0, 0.3);
+    }
+    
+    .continue-button {
+      background-color: rgba(0, 80, 0, 0.7);
+      color: #00ff88;
+      border: 2px solid rgba(0, 255, 128, 0.4);
+      border-radius: 8px;
+      padding: 12px 30px;
+      font-family: monospace;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+      transition: all 0.2s ease-out;
+    }
+    
+    .continue-button:hover {
+      background-color: rgba(0, 100, 0, 0.8);
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+      transform: scale(1.05);
+    }
   </style>
 </head>
 <body>
@@ -1058,6 +1159,20 @@
   <div class="modal" id="elevatorModal">
     <div class="modal-content elevator-passage">
       <div class="ascii-art" id="elevatorPassage"></div>
+    </div>
+  </div>
+
+  <!-- Resolution Warning Modal -->
+  <div class="resolution-modal" id="resolutionModal">
+    <div class="resolution-content">
+      <h2>Screen Resolution Warning</h2>
+      <p>Your current screen resolution may affect the optimal display of this game.</p>
+      <div class="resolution-info">
+        <p>Current Resolution: <span id="currentResolution"></span></p>
+        <p>Recommended: <span>1600x1200 or higher</span></p>
+      </div>
+      <div id="resolutionStatus" class="resolution-status"></div>
+      <button class="continue-button" id="continueButton">Continue Anyway</button>
     </div>
   </div>
 
@@ -2704,6 +2819,41 @@
       // Recreate sine waves when window is resized
       createSineWaveQuotes();
     });
+
+    // Show resolution warning modal at startup
+    const resolutionModal = document.getElementById('resolutionModal');
+    const currentResolution = document.getElementById('currentResolution');
+    const resolutionStatus = document.getElementById('resolutionStatus');
+    const continueButton = document.getElementById('continueButton');
+
+    function checkResolution() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      currentResolution.textContent = `${width}x${height}`;
+
+      // Check if width is at least 1600 and height is at least 1200
+      if (width >= 1600 && height >= 1200) {
+        resolutionStatus.textContent = "Optimal resolution detected.";
+        resolutionStatus.className = "resolution-status status-optimal";
+        continueButton.textContent = "Continue";
+      } else if (width >= 1600 || (width >= 1440 && height >= 900)) {
+        resolutionStatus.textContent = "Suboptimal resolution detected.";
+        resolutionStatus.className = "resolution-status status-suboptimal";
+        continueButton.textContent = "Continue Anyway";
+      } else {
+        resolutionStatus.textContent = "Low resolution detected.";
+        resolutionStatus.className = "resolution-status status-low";
+        continueButton.textContent = "Continue Anyway";
+      }
+
+      resolutionModal.classList.add('show');
+    }
+
+    continueButton.addEventListener('click', () => {
+      resolutionModal.classList.remove('show');
+    });
+
+    window.addEventListener('load', checkResolution);
   </script>
 </body>
 </html>
